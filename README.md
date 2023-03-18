@@ -11,9 +11,10 @@ For packages and virtual environment management the chosen tool is `pipenv`.
 1. Download and install [PyCharm IDE](https://www.jetbrains.com/pycharm/download/#section=linux).
 2. Install `pipenv`. A guide is available [here](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
    - For Windows remember to add the `pipenv` command to the user PATH:
-     - Search &rarr; Edit system environment variables &rarr; Environment variables &rarr; User Variables
-     - PATH &rarr; New &rarr; `C:\Users\[username]\AppData\Roaming\Python\Python3[xxx]\Scripts`
+     - Search &rarr; Edit system environment variables &rarr; Environment variables &rarr; User Variables &rarr; PATH &rarr; New
+     - Insert the path to Python's script folder, usually is something like `C:\Users\[username]\AppData\Roaming\Python\Python3[xxx]\Scripts` 
 3. Create a new PyCharm project from this GIT repository.
+    - From PyCharm's Welcome Screen &rarr; Get from VCS &rarr; Paste the link to this repository
 4. Initialize the virtual env and download the required packages:
    - Linux: `PIPENV_VENV_IN_PROJECT=1 pipenv sync --dev`
    - Windows CMD: `set PIPENV_VENV_IN_PROJECT=1 & pipenv sync --dev`
