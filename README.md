@@ -14,7 +14,7 @@ For packages and virtual environment management the chosen tool is `pipenv`.
 2. Install Python's version management tool:
    - Linux/macOS: [`pyenv`](https://github.com/pyenv/pyenv)
    - Windows: [`pyenv-win`](https://github.com/pyenv-win/pyenv-win)
-3. Install `pipenv`. A guide is available [here](https://pipenv.pypa.io/en/latest/install/#installing-pipenv).
+3. Install `pipenv`. A guide is available [here](https://pipenv.pypa.io/en/latest/installation/).
    - For Windows remember to add the `pipenv` command to the user PATH:
      - Search &rarr; Edit system environment variables &rarr; Environment variables &rarr; User Variables &rarr; PATH &rarr; New
      - Insert the path to Python's script folder, usually is something like `C:\Users\[username]\AppData\Roaming\Python\Python3[xxx]\Scripts` 
