@@ -1,6 +1,14 @@
 # MAEC - L04-Music-Generation
 Repository for Music and Acoustics Engineering Capstone 2022/23 Course
 
+![Elements scheme](resources/images/elements_scheme.png)
+
+
+- **Dataset** ![0%](https://progress-bar.dev/0)
+- **Model** ![0%](https://progress-bar.dev/0)
+- **Trainer** ![0%](https://progress-bar.dev/0)
+- **Tester** ![0%](https://progress-bar.dev/0)
+
 ## Local environment
 
 The required Python version is `3.11.x`.
