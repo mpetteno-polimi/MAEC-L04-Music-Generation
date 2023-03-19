@@ -11,7 +11,7 @@ Repository for Music and Acoustics Engineering Capstone 2022/23 Course
 
 ## Local environment
 
-The required Python version is `3.11.x`.
+The required Python version is `3.10.x`.
 
 To manage Python versions in your system the suggested tool is `pyenv`.
 
