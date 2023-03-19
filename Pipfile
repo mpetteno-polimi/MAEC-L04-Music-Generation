@@ -4,9 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-tensorflow = "==2.11.*"
-pretty-midi = "==0.2.10"
-pandas = "==1.5.3"
+tensorflow = "==2.10.*"
 
 [dev-packages]
 
