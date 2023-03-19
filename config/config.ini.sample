@@ -1,0 +1,4 @@
+[Datasets]
+MAESTRO_VERSION = 3.0.0
+MAESTRO_URL = https://storage.googleapis.com/magentadata/datasets/maestro
+MAESTRO_MIDI_ONLY = True

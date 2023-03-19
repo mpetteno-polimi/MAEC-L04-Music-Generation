@@ -25,3 +25,5 @@ config/config.ini
 
 resources/sctk/
 /notebooks/.ipynb_checkpoints/
+
+resources/data/*
