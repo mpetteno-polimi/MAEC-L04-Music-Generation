@@ -3,7 +3,6 @@ Repository for Music and Acoustics Engineering Capstone 2022/23 Course
 
 ![Elements scheme](resources/images/elements_scheme.png)
 
-
 - **Dataset** ![0%](https://progress-bar.dev/0)
 - **Model** ![0%](https://progress-bar.dev/0)
 - **Trainer** ![0%](https://progress-bar.dev/0)
