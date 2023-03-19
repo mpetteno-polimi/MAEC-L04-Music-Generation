@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9af7c0b36d497ab98d7a22d14b38fd3181fbd20a06edc75f6572d931de293f33"
+            "sha256": "f4efa5ee7e88a61f98598a299eac7fa8e11229392ff8b5355064abcfe418e2e0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -341,6 +341,13 @@
             "markers": "python_version >= '3.7'",
             "version": "==2.1.2"
         },
+        "mido": {
+            "hashes": [
+                "sha256:0e618232063e0a220249da4961563c7636fea00096cfb3e2b87a4231f0ac1a9e",
+                "sha256:17b38a8e4594497b850ec6e78b848eac3661706bfc49d484a36d91335a373499"
+            ],
+            "version": "==1.2.10"
+        },
         "numpy": {
             "hashes": [
                 "sha256:003a9f530e880cb2cd177cba1af7220b9aa42def9c4afc2a2fc3ee6be7eb2b22",
@@ -398,6 +405,13 @@
             ],
             "markers": "python_version >= '3.7'",
             "version": "==23.0"
+        },
+        "pretty-midi": {
+            "hashes": [
+                "sha256:ea6e192f94044674e833336ea1f415318ddf28e320302ac7b109edff0d4534bd"
+            ],
+            "index": "pypi",
+            "version": "==0.2.10"
         },
         "protobuf": {
             "hashes": [
