@@ -5,6 +5,8 @@ name = "pypi"
 
 [packages]
 tensorflow = "==2.10.*"
+pandas = "==1.5.3"
+pretty-midi = "==0.2.10"
 
 [dev-packages]
 
