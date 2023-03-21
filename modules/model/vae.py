@@ -1,9 +1,7 @@
 """ TODO - Module DOCUMENTATION """
-from model.decoders.lstm import LstmDecoder
-from model.encoder.lstm import LstmEncoder
-from model.sampler.sampler import StdSampler
-
 from tensorflow import keras as ks
+
+from model.encoder.lstm import LstmEncoder
 
 
 class VAE(ks.Model):
@@ -15,11 +13,7 @@ class VAE(ks.Model):
     def decoder(self):
         return self._decoder
 
-    @property
-    def hparams(self):
-        return self._hparams
-
-    def __init__(self, encoder=LstmEncoder, decoder=LstmDecoder, sampler=StdSampler, *args, **kwargs):
+    def __init__(self, encoder, decoder, sampler, config, *args, **kwargs):  # todo: add default enc, dec, sampler
         """Initializer for a Variational Autoencoder model.
 
         Args:
@@ -31,13 +25,17 @@ class VAE(ks.Model):
         self._decoder = decoder
         self._sampler = sampler
 
-        self._hparams = None
-
     def call(self, inputs, training=None, mask=None):
-        x = self._encoder.call(inputs)
-
+        [z_mean, z_log_var] = self._encoder.call(self._encoder, inputs)
+        x = self._sampler.call(self._sampler, [z_mean, z_log_var])
         return self._decoder.call(x)
 
+    def config_for_training(self, config):
+        # todo: customize implementation and parametrize
+        self.compile(optimizer=ks.optimizers.Adam())
 
-    def train_step(self, input_sequence, output_sequence, sequence_length, control_sequence=None):
-        return
+    def train(self, data, epochs, batch_size):
+        # todo: customize implementation and parametrize
+        self.fit(data,
+                 epochs=epochs,
+                 batch_size=batch_size)
