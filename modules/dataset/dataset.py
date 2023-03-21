@@ -1,58 +1,71 @@
 """ TODO - Module DOC """
 
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any
+
 import tensorflow as tf
-import pandas as pd
-from abc import ABC
+import pretty_midi as pm
+
 import utilities
-from definitions import ConfigSections, Paths
+from definitions import ConfigSections
 
 
 class Dataset(ABC):
+    """ TODO - Class DOC """
 
     def __init__(self):
+        self._config_file = utilities.load_configuration_section(ConfigSections.DATASETS)
+        self._download()
+        self.train_dataset = self._process_dataset_metadata(self._train_dataset_metadata)
+        self.validation_dataset = self._process_dataset_metadata(self._validation_dataset_metadata)
+        self.test_dataset = self._process_dataset_metadata(self._test_dataset_metadata)
 
-        self._train_dataset = None
-        self._validation_dataset = None
-        self._test_dataset = None
+    @abstractmethod
+    def _download(self) -> None:
+        pass
 
-        # Load configuration file
-        config_file = utilities.load_configuration_section(ConfigSections.DATASETS)
-        self._config_file = config_file
+    @abstractmethod
+    def _process_dataset_metadata(self, dataset_metadata: Any) -> tf.data.Dataset:
+        pass
 
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        pass
 
-class MaestroDataset(Dataset):
+    @property
+    @abstractmethod
+    def path(self) -> Path:
+        pass
 
-    def __init__(self):
-        super().__init__()
-        self._init_paths()
-        self.download()
-        self.make()
+    @property
+    @abstractmethod
+    def version(self) -> str:
+        pass
 
-    def _init_paths(self):
-        self._version = 'v' + self._config_file.get('maestro_version')
-        self._name = 'maestro-' + self._version
-        self._path = Paths.DATASETS_DIR / self._name
-        self._metadata = self._path / (self._name + '.csv')
+    @property
+    @abstractmethod
+    def _train_dataset_metadata(self) -> Any:
+        pass
 
-    def download(self):
-        midi_only = '-midi' if self._config_file.get('maestro_midi_only') else ''
-        maestro_zip_name = self._name + midi_only + '.zip'
-        maestro_url = '/'.join([self._config_file.get('maestro_url'), self._version, maestro_zip_name])
-        if not self._path.exists():
-            tf.keras.utils.get_file(
-                fname=maestro_zip_name,
-                origin=maestro_url,
-                extract=True,
-                cache_dir=Paths.RESOURCES_DIR,
-                cache_subdir=Paths.DATASETS_DIR,
-            )
+    @property
+    @abstractmethod
+    def _validation_dataset_metadata(self) -> Any:
+        pass
 
-    def make(self):
-        dataset = pd.read_csv(self._metadata)
-        self._train_dataset = dataset[dataset.split == 'train']
-        self._validation_dataset = dataset[dataset.split == 'validation']
-        self._test_dataset = dataset[dataset.split == 'test']
+    @property
+    @abstractmethod
+    def _test_dataset_metadata(self) -> Any:
+        pass
 
 
-if __name__ == '__main__':
-    maestroData = MaestroDataset()
+class MidiDataset(Dataset, ABC):
+    """ TODO - Class DOC """
+
+    def _process_dataset_metadata(self, midi_files: [str]) -> tf.data.Dataset:
+        for midi_file in midi_files:
+            midi_file_path = str(self.path/midi_file)
+            midi = pm.PrettyMIDI(midi_file_path)
+            deb = midi.instruments[0].get_piano_roll()
+            return
