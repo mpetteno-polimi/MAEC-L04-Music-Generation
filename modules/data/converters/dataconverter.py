@@ -14,13 +14,13 @@ class DataConverter(ABC):
         self.collection_name = collection_name
 
     @abstractmethod
-    def convert_train(self, train_metadata: Any = None) -> None:
+    def convert_train(self, files_to_convert: Any) -> None:
         pass
 
     @abstractmethod
-    def convert_validation(self, validation_metadata: Any = None) -> None:
+    def convert_validation(self, files_to_convert: Any) -> None:
         pass
 
     @abstractmethod
-    def convert_test(self, test_metadata: Any = None) -> None:
+    def convert_test(self, files_to_convert: Any) -> None:
         pass

@@ -10,27 +10,25 @@ from data.converters.dataconverter import DataConverter
 class NoteSequenceConverter(DataConverter):
     """ TODO - Class DOC """
 
-    def convert_train(self, midi_files: [str] = None) -> None:
-        tfrecord_file_name = self.collection_name + "-train.tfrecord"
-        self._convert(tfrecord_file_name, midi_files)
+    def convert_train(self, files_to_convert: [str]) -> None:
+        self._convert("train", files_to_convert)
 
-    def convert_validation(self, midi_files: [str] = None) -> None:
-        tfrecord_file_name = self.collection_name + "-validation.tfrecord"
-        self._convert(tfrecord_file_name, midi_files)
+    def convert_validation(self, files_to_convert: [str]) -> None:
+        self._convert("validation", files_to_convert)
 
-    def convert_test(self, midi_files: [str] = None) -> None:
-        tfrecord_file_name = self.collection_name + "-test.tfrecord"
-        self._convert(tfrecord_file_name, midi_files)
+    def convert_test(self, files_to_convert: [str]) -> None:
+        self._convert("test", files_to_convert)
 
-    def _convert(self, tfrecord_file_name: str, midi_files: [str]) -> None:
+    def _convert(self, tfrecord_file_label: str, files_to_convert: [str]) -> None:
+        tfrecord_file_name = '{}-{}.tfrecord'.format(self.collection_name, tfrecord_file_label)
         tfrecord_file_path = self.output_path / tfrecord_file_name
         if not tfrecord_file_path.exists():
             with tf.io.TFRecordWriter(str(tfrecord_file_path)) as writer:
-                for midi_file in midi_files:
+                for file in files_to_convert:
                     try:
-                        sequence = self._convert_midi_file(midi_file)
+                        sequence = self._convert_midi_file(file)
                     except Exception as exc:
-                        tf.compat.v1.logging.fatal('%r generated an exception: %s', midi_file, exc)
+                        tf.compat.v1.logging.fatal('%r generated an exception: %s', file, exc)
                     if sequence:
                         writer.write(sequence.SerializeToString())
 
