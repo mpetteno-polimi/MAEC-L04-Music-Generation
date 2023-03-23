@@ -24,4 +24,6 @@ class Paths:
     CONFIG_DIR = ROOT_DIR / 'config'
     MAIN_CONFIG_FILE = CONFIG_DIR / 'config.ini'
     RESOURCES_DIR = ROOT_DIR / 'resources'
-    DATASETS_DIR = RESOURCES_DIR / 'data'
+    DATA_DIR = RESOURCES_DIR / 'data'
+    DATA_SOURCES_DIR = DATA_DIR / 'sources'
+    DATA_RECORDS_DIR = DATA_DIR / 'records'
