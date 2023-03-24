@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+import tensorflow as tf
+
 
 class DataLoader(ABC):
     """ TODO - Class DOC """
@@ -12,13 +14,13 @@ class DataLoader(ABC):
         self.input_path = input_path
 
     @abstractmethod
-    def load_train(self, train_metadata: Any = None) -> None:
+    def load_train(self, train_metadata: Any = None) -> tf.data.Dataset:
         pass
 
     @abstractmethod
-    def load_validation(self, validation_metadata: Any = None) -> None:
+    def load_validation(self, validation_metadata: Any = None) -> tf.data.Dataset:
         pass
 
     @abstractmethod
-    def load_test(self, test_metadata: Any = None) -> None:
+    def load_test(self, test_metadata: Any = None) -> tf.data.Dataset:
         pass

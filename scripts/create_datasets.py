@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from maestro import MaestroDataset
+from modules.data.datasets.maestro import MaestroDataset
 
 if __name__ == '__main__':
     tf.get_logger().setLevel('INFO')
@@ -9,4 +9,3 @@ if __name__ == '__main__':
     maestro_dataset = MaestroDataset()
     maestro_dataset.download()
     maestro_dataset.convert()
-

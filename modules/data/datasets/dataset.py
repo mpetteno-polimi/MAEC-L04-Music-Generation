@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-import utilities
-from data.converters.dataconverter import DataConverter
-from data.loaders.dataloader import DataLoader
 from definitions import ConfigSections, Paths
-from noteseqconverter import NoteSequenceConverter
+from modules import utilities
+from modules.data.converters.dataconverter import DataConverter
+from modules.data.converters.noteseqconverter import NoteSequenceConverter
+from modules.data.loaders.dataloader import DataLoader
 
 
 class Dataset(ABC):

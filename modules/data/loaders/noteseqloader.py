@@ -7,21 +7,21 @@ import magenta.models.music_vae.data as music_vae_data
 import magenta.models.music_vae.configs as music_vae_configs
 from magenta.contrib import training as contrib_training
 
-from data.loaders.dataloader import DataLoader
 from definitions import Paths
+from modules.data.loaders.dataloader import DataLoader
 
 
 class NoteSequenceLoader(DataLoader):
     """ TODO - Class DOC """
 
-    def load_train(self, metadata: Any = None) -> None:
-        self._load("train")
+    def load_train(self, metadata: Any = None) -> tf.data.Dataset:
+        return self._load("train")
 
-    def load_validation(self, metadata: Any = None) -> None:
-        self._load("validation")
+    def load_validation(self, metadata: Any = None) -> tf.data.Dataset:
+        return self._load("validation")
 
-    def load_test(self, metadata: Any = None) -> None:
-        self._load("test")
+    def load_test(self, metadata: Any = None) -> tf.data.Dataset:
+        return self._load("test")
 
     def _load(self, tfrecord_file_label: str) -> tf.data.Dataset:
         record_paths = list(self.input_path.glob('*-{}.tfrecord'.format(tfrecord_file_label)))

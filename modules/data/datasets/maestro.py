@@ -6,8 +6,8 @@ from typing import Any
 import tensorflow as tf
 import pandas as pd
 
-from dataset import SourceDataset
 from definitions import Paths
+from modules.data.datasets.dataset import SourceDataset
 
 
 class MaestroDataset(SourceDataset):

@@ -2,10 +2,10 @@
 
 from pathlib import Path
 
-from data.loaders.dataloader import DataLoader
-from data.loaders.noteseqloader import NoteSequenceLoader
 from dataset import RecordsDataset
 from definitions import Paths
+from modules.data.loaders.dataloader import DataLoader
+from modules.data.loaders.noteseqloader import NoteSequenceLoader
 
 
 class L04Dataset(RecordsDataset):
