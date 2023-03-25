@@ -14,16 +14,16 @@ class NoteSequenceConverter(DataConverter):
     """ TODO - Class DOC """
 
     def convert_train(self, files_to_convert: [str]) -> None:
-        self._convert("train", files_to_convert)
+        self._convert_to_noteseq("train", files_to_convert)
 
     def convert_validation(self, files_to_convert: [str]) -> None:
-        self._convert("validation", files_to_convert)
+        self._convert_to_noteseq("validation", files_to_convert)
 
     def convert_test(self, files_to_convert: [str]) -> None:
-        self._convert("test", files_to_convert)
+        self._convert_to_noteseq("test", files_to_convert)
 
-    def _convert(self, tfrecord_file_label: str, files_to_convert: [str]) -> None:
-        tfrecord_file_name = '{}-{}-{}.tfrecord'.format("noteseq", self.collection_name, tfrecord_file_label)
+    def _convert_to_noteseq(self, tfrecord_file_label: str, files_to_convert: [str]) -> None:
+        tfrecord_file_name = '{}-{}_noteseq.tfrecord'.format(self.collection_name, tfrecord_file_label)
         tfrecord_file_path = self.output_path / tfrecord_file_name
         if not tfrecord_file_path.exists():
             tf.io.gfile.mkdir(self.output_path)

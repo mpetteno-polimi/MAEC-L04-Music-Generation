@@ -27,3 +27,5 @@ class Paths:
     DATA_DIR = RESOURCES_DIR / 'data'
     DATA_SOURCES_DIR = DATA_DIR / 'sources'
     DATA_RECORDS_DIR = DATA_DIR / 'records'
+    DATA_NOTESEQ_RECORDS_DIR = DATA_RECORDS_DIR / 'noteseq'
+    DATA_PIANOROLL_RECORDS_DIR = DATA_RECORDS_DIR / 'pianoroll'

@@ -27,7 +27,7 @@ class MaestroDataset(SourceDataset):
 
     @property
     def name(self) -> str:
-        return 'maestro-' + self.version
+        return 'maestro-{}'.format(self.version)
 
     @property
     def path(self) -> Path:
@@ -35,7 +35,7 @@ class MaestroDataset(SourceDataset):
 
     @property
     def version(self) -> str:
-        return 'v' + self._config_file.get('maestro_version')
+        return 'v{}'.format(self._config_file.get('maestro_version'))
 
     @property
     def _metadata(self) -> Any:
