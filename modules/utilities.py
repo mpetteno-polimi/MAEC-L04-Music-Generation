@@ -14,10 +14,16 @@ from datetime import time
 from typing import Mapping, Any
 
 import note_seq
+from magenta.common import merge_hparams
+from magenta.models.music_vae import MusicVAE, data, lstm_models
 
 from definitions import Paths
 import tensorflow as tf
-import magenta.models.music_vae.configs as config
+import magenta.models.music_vae.configs as configs
+
+from magenta.contrib import training as contrib_training
+HParams = contrib_training.HParams
+
 
 
 def load_configuration_file() -> configparser.ConfigParser:
@@ -106,9 +112,10 @@ def check_configuration_section(section_name: str):
         tf.io.gfile.mkdir(config_file.get('output_directory'))
         if config_file.get('model_mode') != 'sample' and config_file.get('model_mode') != 'interpolate':
             raise ValueError('Invalid value for `model_mode`: %s' % config_file.get('model_mode'))
-        if config_file.get('config_map_name') not in config.CONFIG_MAP:
+
+        if config_file.get('config_map_name') not in configs.CONFIG_MAP:
             raise ValueError('Invalid `config_map_name`: %s' % config_file.get('config_map_name').config)
-        if config_file.get('config_map_name') == 'interpolate':
+        if config_file.get('config_mode') == 'interpolate':
             if config_file.get('midi_input_path_1') is None or config_file.get('midi_input_path_2') is None:
                 raise ValueError('`midi_input_path_1` and `midi_input_path_2` must be specified in `interpolate` mode.')
             input_midi_1 = os.path.expanduser(config_file.get('midi_input_path_1'))
@@ -122,3 +129,67 @@ def check_configuration_section(section_name: str):
                 config_file.get('config_map_name'))
             _check_extract_examples(input_midi_1, config_file.get('midi_input_path_1'), 1, config_file)
             _check_extract_examples(input_midi_2, config_file.get('midi_input_path_2'), 2, config_file)
+
+
+    if section_name is 'Training':
+        if config_file.get('model_checkpoint_file_dir') is None:
+            raise ValueError('`model_checkpoint_file_dir` should be specified in the config.ini file')
+        if config_file.get('model_mode') not in ['train', 'eval']:
+            raise ValueError('Invalid mode: %s' % config_file.get('model_mode'))
+
+        if config_file.get('config_map_name') not in configs.CONFIG_MAP:
+            raise ValueError('Invalid config: %s' % config_file.get('config_map_name'))
+        configuration = configs.CONFIG_MAP['config_map_name']
+        if config_file.get('h_params'):
+            configuration.hparams.parse(config_file.get('h_params'))
+        config_update_map = {}
+
+
+    #    if FLAGS.examples_path:
+    #        config_update_map['%s_examples_path' % FLAGS.mode] = os.path.expanduser(
+    #            FLAGS.examples_path)
+    #
+    #    # todo: do we need this? No i think
+    #    if FLAGS.tfds_name:
+    #        if FLAGS.examples_path:
+    #            raise ValueError(
+    #                'At most one of --examples_path and --tfds_name can be set.')
+    #        config_update_map['tfds_name'] = FLAGS.tfds_name
+    #        config_update_map['eval_examples_path'] = None
+    #        config_update_map['train_examples_path'] = None
+
+    # TODO: multithreading
+    #    if FLAGS.num_sync_workers:
+    #        config.hparams.batch_size //= FLAGS.num_sync_workers
+
+        if config_file.get('model_mode') == 'train':
+            is_training = True
+        elif config_file.get('model_mode') == 'eval':
+            is_training = False
+        else:
+            raise ValueError('Invalid mode: {}'.format(config_file.get('model_mode')))
+
+
+# TODO: add method able to generate a magenta config from config.ini file settings
+def add_magenta_config(config_name, model, hparams):
+    """
+    Add a map to the list of available config maps of magenta configs
+    """
+    from magenta.models.music_vae.configs import CONFIG_MAP, Config
+
+    CONFIG_MAP[config_name] = Config(
+        model=model,
+        hparams=merge_hparams(
+            lstm_models.get_default_hparams(),
+            hparams
+        ),
+        note_sequence_augmenter=data.NoteSequenceAugmenter(transpose_range=(-5, 5)),
+        data_converter=data.OneHotMelodyConverter(
+            valid_programs=data.MEL_PROGRAMS,
+            skip_polyphony=False,
+            max_bars=100,  # Truncate long melodies before slicing.
+            slice_bars=2,
+            steps_per_quarter=4),
+        train_examples_path=None,
+        eval_examples_path=None,
+    )
