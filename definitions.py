@@ -11,6 +11,9 @@ class ConfigSections:
     """ Constants that indicate the sections present in the main configuration file. """
 
     DATASETS = 'Datasets'
+    MODEL = 'Model'
+    TEST = 'Testing'
+    TRAINING = 'Training'
 
 
 class Paths:

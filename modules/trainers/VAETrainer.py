@@ -3,14 +3,14 @@ import os
 import magenta.models.music_vae.configs as configs
 import tensorflow._api.v2.compat.v1 as tf
 import tf_slim
-
+from modules.utilities import trial_summary, get_input_tensors
 from trainer import Trainer
 
 
 class VAETrainer(Trainer):
     # TODO: Class DOC
 
-    def __init__(self, dataset, model, config_file):
+    def __init__(self, dataset, model):
         super(VAETrainer, self).__init__(dataset, model)
         """
         Trainer class constructor
@@ -52,19 +52,19 @@ class VAETrainer(Trainer):
         tf.gfile.MakeDirs(train_dir)
         is_chief = (task == 0)
         if is_chief:
-            self._trial_summary(
+                trial_summary(
                 config.hparams, config.train_examples_path or config.tfds_name,
                 train_dir)
         with tf.Graph().as_default():
             with tf.device(tf.train.replica_device_setter(
-                num_ps_tasks, merge_devices=True)):
+                    num_ps_tasks, merge_devices=True)):
 
                 model = config.model
                 model.build(config.hparams,
                             config.data_converter.output_depth,
                             is_training=True)
 
-                optimizer = model.train(self._get_input_tensors(self.dataset, config))
+                optimizer = model.train(get_input_tensors(self.dataset, config))
 
                 hooks = []
                 if num_sync_workers:
