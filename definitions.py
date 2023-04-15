@@ -11,6 +11,8 @@ class ConfigSections:
     """ Constants that indicate the sections present in the main configuration file. """
 
     DATASETS = 'Datasets'
+    DATA_PRE_PROCESS = 'DataPreProcess'
+    TRAINER = 'Trainer'
 
 
 class Paths:
@@ -24,8 +26,9 @@ class Paths:
     CONFIG_DIR = ROOT_DIR / 'config'
     MAIN_CONFIG_FILE = CONFIG_DIR / 'config.ini'
     RESOURCES_DIR = ROOT_DIR / 'resources'
-    DATA_DIR = RESOURCES_DIR / 'data'
+    DATA_DIR = RESOURCES_DIR / 'datasets'
     DATA_SOURCES_DIR = DATA_DIR / 'sources'
     DATA_RECORDS_DIR = DATA_DIR / 'records'
+    DATA_PLOTS_DIR = DATA_DIR / 'plots'
     DATA_NOTESEQ_RECORDS_DIR = DATA_RECORDS_DIR / 'noteseq'
-    DATA_PIANOROLL_RECORDS_DIR = DATA_RECORDS_DIR / 'pianoroll'
+

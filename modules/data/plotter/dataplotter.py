@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 
-class DataConverter(ABC):
+class DataPlotter(ABC):
     """ TODO - Class DOC """
 
     def __init__(self, input_path: Path, output_path: Path, collection_name: str):
@@ -13,13 +13,5 @@ class DataConverter(ABC):
         self.collection_name = collection_name
 
     @abstractmethod
-    def convert_train(self, train_data: [str]) -> None:
-        pass
-
-    @abstractmethod
-    def convert_validation(self, validation_data: [str]) -> None:
-        pass
-
-    @abstractmethod
-    def convert_test(self, test_data: [str]) -> None:
+    def plot(self, files_names: [str]) -> None:
         pass

@@ -7,10 +7,10 @@ import tensorflow as tf
 import pandas as pd
 
 from definitions import Paths
-from modules.data.datasets.dataset import SourceDataset
+from modules.data.datasets.dataset import MidiDataset
 
 
-class MaestroDataset(SourceDataset):
+class MaestroDataset(MidiDataset):
     """ TODO - Class DOC """
 
     def download(self) -> None:
@@ -38,20 +38,20 @@ class MaestroDataset(SourceDataset):
         return 'v{}'.format(self._config_file.get('maestro_version'))
 
     @property
-    def _metadata(self) -> Any:
+    def metadata(self) -> Any:
         return pd.read_csv(self.path / (self.name + '.csv'))
 
     @property
-    def _train_metadata(self) -> [str]:
-        train_metadata = self._metadata[self._metadata.split == 'train']
+    def _train_data(self) -> [str]:
+        train_metadata = self.metadata[self.metadata.split == 'train']
         return train_metadata.midi_filename
 
     @property
-    def _validation_metadata(self) -> [str]:
-        validation_metadata = self._metadata[self._metadata.split == 'validation']
+    def _validation_data(self) -> [str]:
+        validation_metadata = self.metadata[self.metadata.split == 'validation']
         return validation_metadata.midi_filename
 
     @property
-    def _test_metadata(self) -> [str]:
-        test_metadata = self._metadata[self._metadata.split == 'test']
+    def _test_data(self) -> [str]:
+        test_metadata = self.metadata[self.metadata.split == 'test']
         return test_metadata.midi_filename
