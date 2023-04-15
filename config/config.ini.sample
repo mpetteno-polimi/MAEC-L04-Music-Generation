@@ -1,0 +1,37 @@
+[Datasets]
+MAESTRO_VERSION = 3.0.0
+MAESTRO_URL = https://storage.googleapis.com/magentadata/datasets/maestro
+MAESTRO_MIDI_ONLY = True
+PLOT_DATA = False
+
+[DataPreProcess]
+INPUT_TFRECORD = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
+OUTPUT_TFRECORD = ./resources/datasets/records/processed/maestro-v3.0.0-hierdec-pr_16bar.tfrecord
+OUTPUT_SHARDS = 2
+CONFIG = hierdec-pr_16bar
+ENABLE_FILTERING = False
+MAX_TOTAL_TIME = 1800
+MAX_NUM_NOTES = 10000
+MIN_VELOCITIES = 1
+MIN_METRIC_POSITIONS = 1
+IS_DRUM =
+DRUMS_ONLY =
+PIPELINE_OPTIONS = --runner=DirectRunner
+
+[Trainer]
+MASTER =
+EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
+TFDS_NAME =
+RUN_DIR = ./resources
+NUM_STEPS = 2000
+EVAL_NUM_BATCHES =
+CHECKPOINTS_TO_KEEP = 100
+KEEP_CHECKPOINT_EVERY_N_HOURS = 1
+MODE = train
+CONFIG = hierdec-pr_16bar
+CACHE_DATASET = True
+TASK = 0
+NUM_PS_TASKS = 0
+NUM_SYNC_WORKERS = 0
+EVAL_DIR_SUFFIX = ''
+LOG = INFO
