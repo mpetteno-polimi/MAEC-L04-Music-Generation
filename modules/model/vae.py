@@ -1,54 +1,11 @@
 """ TODO - Module DOCUMENTATION """
-from modules.model.myBaseModels import VAE
+from modules.model.base import VAE
 import tensorflow_probability as tfp
-from tensorflow import keras as ks
-import tensorflow as tf
-
+import tensorflow._api.v2.compat.v1 as tf
 import tf_slim
 import logging
 
 tf_dist = tfp.distributions
-
-# class KerasVAE(ks.Model):
-#     # todo: doc
-#     #   - WIP
-#     #   - NOT COMPATIBLE WITH MUSIC VAE!
-#
-#     # todo: class Documentation
-#     @property
-#     def encoder(self):
-#         return self._encoder
-#
-#     @property
-#     def decoder(self):
-#         return self._decoder
-#
-#     def __init__(self, encoder, decoder, sampler, config, *args, **kwargs):  # todo: add default enc, dec, sampler
-#         """Initializer for a Variational Autoencoder model.
-#
-#         Args:
-#           encoder: An Encoder implementation class.
-#           decoder: A Decoder implementation class.
-#         """
-#         super().__init__(*args, **kwargs)
-#         self._encoder = encoder
-#         self._decoder = decoder
-#         self._sampler = sampler
-#
-#     def call(self, inputs, training=None, mask=None):
-#         [z_mean, z_log_var] = self._encoder.call(self._encoder, inputs)
-#         x = self._sampler.call(self._sampler, [z_mean, z_log_var])
-#         return self._decoder.call(x)
-#
-#     def config_for_training(self, config):
-#         # todo: customize implementation and parametrize
-#         self.compile(optimizer=ks.optimizers.Adam())
-#
-#     def train(self, data, epochs, batch_size):
-#         # todo: customize implementation and parametrize
-#         self.fit(data,
-#                  epochs=epochs,
-#                 batch_size=batch_size)
 
 
 class MyVAE(VAE):
@@ -92,8 +49,7 @@ class MyVAE(VAE):
         logging.info('Building MusicVAE model with %s, %s, and hparams:\n%s',
                      self.encoder.__class__.__name__,
                      self.decoder.__class__.__name__, hparams.values())
-        # self.global_step = tf.train.get_or_create_global_step()
-        self.global_step = tf.Variable(1, name="global_step")
+        self.global_step = tf.train.get_or_create_global_step()
         self._hparams = hparams
         self._encoder.build(hparams, is_training)
         self._decoder.build(hparams, output_depth, is_training)

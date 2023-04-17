@@ -12,6 +12,9 @@ class ConfigSections:
 
     DATASETS = 'Datasets'
     MODEL = 'Model'
+    TRAINING = 'Training'
+    TESTING = 'Testing'
+    GENERATION = 'Generation'
 
 
 class Paths:
@@ -25,4 +28,8 @@ class Paths:
     CONFIG_DIR = ROOT_DIR / 'config'
     MAIN_CONFIG_FILE = CONFIG_DIR / 'config.ini'
     RESOURCES_DIR = ROOT_DIR / 'resources'
-    DATASETS_DIR = RESOURCES_DIR / 'data'
+    DATA_DIR = RESOURCES_DIR / 'data'
+    DATA_SOURCES_DIR = DATA_DIR / 'sources'
+    DATA_RECORDS_DIR = DATA_DIR / 'records'
+    DATA_NOTESEQ_RECORDS_DIR = DATA_RECORDS_DIR / 'noteseq'
+    DATA_PIANOROLL_RECORDS_DIR = DATA_RECORDS_DIR / 'pianoroll'
