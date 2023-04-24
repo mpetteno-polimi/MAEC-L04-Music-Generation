@@ -1,3 +1,4 @@
+
 import tensorflow as tf
 from magenta.models.music_vae.configs import CONFIG_MAP
 from magenta.models.music_vae.music_vae_train import run, FLAGS

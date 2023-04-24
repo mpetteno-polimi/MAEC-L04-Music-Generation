@@ -4,6 +4,7 @@ from magenta.models.music_vae.configs import CONFIG_MAP, Config, HParams
 from magenta.models.music_vae.data import NoteSequenceAugmenter, PIANO_MIN_MIDI_PITCH, PIANO_MAX_MIDI_PITCH
 
 from modules.data.converters.pianoroll import PianoRollConverter
+from modules.model.maec_decoder import MaecDecoder
 
 QUARTER_PER_BARS = 4
 STEPS_PER_QUARTER = 4
@@ -17,7 +18,6 @@ pr_16bar_converter = PianoRollConverter(
     max_steps_discard=None,
     max_bars=None,
     slice_bars=SLICE_BARS,
-    add_end_token=False,
     steps_per_quarter=STEPS_PER_QUARTER,
     quarters_per_bar=QUARTER_PER_BARS,
     pad_to_total_time=True,
@@ -29,18 +29,20 @@ pr_16bar_converter = PianoRollConverter(
 def update_magenta_config_map():
     CONFIG_MAP['hierdec-pr_16bar'] = Config(
         model=MusicVAE(
-            lstm_models.BidirectionalLstmEncoder(),
-            lstm_models.HierarchicalLstmDecoder(
-                lstm_models.CategoricalLstmDecoder(),
+            encoder=lstm_models.BidirectionalLstmEncoder(),
+            decoder=lstm_models.HierarchicalLstmDecoder(
+                MaecDecoder(cnn='inceptionv3'),
                 level_lengths=[16, 16],
-                disable_autoregression=True)),
+                disable_autoregression=True
+            )
+        ),
         hparams=HParams(
             max_seq_len=SLICE_BARS*STEPS_PER_BAR,  # Maximum sequence length. Others will be truncated.
             z_size=512,  # Size of latent vector z.
             free_bits=256,  # Bits to exclude from KL loss per dimension.
             max_beta=0.2,  # Maximum KL cost weight, or cost if not annealing.
             beta_rate=0.0,  # Exponential rate at which to anneal KL cost.
-            batch_size=64,  # Minibatch size.
+            batch_size=5,  # Minibatch size.
             grad_clip=1.0,  # Gradient clipping. Recommend leaving at 1.0.
             clip_mode='global_norm',  # value or global_norm.
             # If clip_mode=global_norm and global_norm is greater than this value,
