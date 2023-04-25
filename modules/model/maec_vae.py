@@ -1,5 +1,6 @@
 # TODO - DOC
 
+import keras
 from keras import models, layers, optimizers, callbacks
 from keras import backend as K
 
@@ -29,7 +30,7 @@ class MaecVAE(object):
                         self._repr_config.get("piano_min_midi_pitch") + 1) * 2,
         z_size = self._model_config.get("z_size")
 
-        self._inputs = layers.Input(shape=(seq_length, frame_length), name="VAE_input")
+        self._inputs = keras.Input(shape=(seq_length, frame_length), name="VAE_input")
 
         # Encoder
         self._encoder.build(seq_length, frame_length, z_size)
@@ -52,6 +53,14 @@ class MaecVAE(object):
     def train(self, train_data, validation_data):
         self._compile()
         self._fit(train_data, validation_data)
+
+    def sample(self, input_):
+        z_size = self._model_config.get("z_size")
+        cnn_input = get_ssm_tensor(input_)
+        cnn_embedding = self._cnn.embed(cnn_input, is_training=False)
+        z_sample = K.random_normal(shape=z_size, mean=0.0, stddev=1.0)
+        decoder_input = K.concatenate(z_sample, cnn_embedding)
+        return self._decoder.decode(decoder_input, is_training=False)
 
     def summary(self):
         self._model.summary()

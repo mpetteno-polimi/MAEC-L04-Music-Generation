@@ -1,5 +1,6 @@
 # TODO - DOC
 
+import keras
 from keras import models, layers
 from keras import backend as K
 
@@ -20,7 +21,7 @@ class BidirectionalLstmEncoder(object):
             random_sample = mu + K.exp(log_variance / 2) * epsilon
             return random_sample
 
-        encoder_inputs = layers.Input(shape=(seq_length, frame_length), name="encoder_input")
+        encoder_inputs = keras.Input(shape=(seq_length, frame_length), name="encoder_input")
 
         # TODO - Translate to LSTM
         x = layers.Conv2D(32, 3, activation="relu", strides=2, padding="same")(encoder_inputs)

@@ -28,8 +28,8 @@ class CNN(object):
         else:
             raise ValueError("CNN configuration {} not supported".format(cnn_id))
 
-    def embed(self, input_):
-        return self._model(input_)
+    def embed(self, input_, is_training=True):
+        return self._model(input_) if is_training else self._model.predict(input_)
 
     def summary(self):
         self._model.summary()

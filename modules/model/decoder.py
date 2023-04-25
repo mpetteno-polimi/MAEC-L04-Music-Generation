@@ -1,5 +1,6 @@
 # TODO - DOC
 
+import keras
 from keras import models, layers, losses
 from keras import backend as K
 
@@ -11,7 +12,7 @@ class HierarchicalDecoder(object):
 
     def build(self, z_size, cnn_embedding_length):
         decoder_input_dim = z_size + cnn_embedding_length
-        latent_inputs = layers.Input(shape=(decoder_input_dim,), name="decoder_input")
+        latent_inputs = keras.Input(shape=(decoder_input_dim,), name="decoder_input")
 
         # TODO - Translate to LSTM decoder
         x = layers.Dense(7 * 7 * 64, activation="relu")(latent_inputs)
@@ -22,8 +23,8 @@ class HierarchicalDecoder(object):
 
         self._model = models.Model(latent_inputs, decoder_outputs, name="decoder")
 
-    def decode(self, input_):
-        return self._model(input_)
+    def decode(self, input_, is_training=False):
+        return self._model(input_) if is_training else self._model.predict(input_)
 
     def reconstruction_loss(self, input_, output_):
         return 28 * 28 * losses.binary_crossentropy(K.flatten(input_), K.flatten(output_))
