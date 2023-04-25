@@ -10,9 +10,10 @@ from pathlib import Path
 class ConfigSections:
     """ Constants that indicate the sections present in the main configuration file. """
 
+    REPRESENTATION = 'Representation'
     DATASETS = 'Datasets'
-    DATA_PRE_PROCESS = 'DataPreProcess'
-    TRAINER = 'Trainer'
+    MODEL = 'Model'
+    TRAINING = 'Training'
 
 
 class Paths:

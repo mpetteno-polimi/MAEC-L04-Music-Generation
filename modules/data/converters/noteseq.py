@@ -4,10 +4,10 @@ from typing import Callable
 
 import tensorflow as tf
 import note_seq
-from magenta.scripts.convert_dir_to_note_sequences import generate_note_sequence_id
 from note_seq import abc_parser
 
 from modules.data.converters.dataconverter import DataConverter
+from modules.utilities import generate_note_sequence_id
 
 
 class NoteSequenceConverter(DataConverter):
