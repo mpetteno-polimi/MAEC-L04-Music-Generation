@@ -1,4 +1,3 @@
-
 from magenta.models.music_vae import MusicVAE, lstm_models
 from magenta.models.music_vae.configs import CONFIG_MAP, Config, HParams
 from magenta.models.music_vae.data import NoteSequenceAugmenter, PIANO_MIN_MIDI_PITCH, PIANO_MAX_MIDI_PITCH
@@ -30,14 +29,15 @@ def update_magenta_config_map():
     CONFIG_MAP['hierdec-pr_16bar'] = Config(
         model=MusicVAE(
             encoder=lstm_models.BidirectionalLstmEncoder(),
-            decoder=lstm_models.HierarchicalLstmDecoder(
-                MaecDecoder(cnn='inceptionv3'),
+            decoder=MaecDecoder(
+                core_decoder=lstm_models.CategoricalLstmDecoder(),
                 level_lengths=[16, 16],
-                disable_autoregression=True
+                disable_autoregression=True,
+                cnn='inceptionv3'
             )
         ),
         hparams=HParams(
-            max_seq_len=SLICE_BARS*STEPS_PER_BAR,  # Maximum sequence length. Others will be truncated.
+            max_seq_len=SLICE_BARS * STEPS_PER_BAR,  # Maximum sequence length. Others will be truncated.
             z_size=512,  # Size of latent vector z.
             free_bits=256,  # Bits to exclude from KL loss per dimension.
             max_beta=0.2,  # Maximum KL cost weight, or cost if not annealing.
