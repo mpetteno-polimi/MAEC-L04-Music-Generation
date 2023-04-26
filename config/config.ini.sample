@@ -31,7 +31,6 @@ BETA_RATE = 0.0
 [Training]
 TRAIN_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
 VALIDATION_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-validation.tfrecord
-RUN_DIR = ./resources
 BATCH_SIZE = 64
 EPOCHS = 20
 STEPS_PER_EPOCH =
@@ -51,7 +50,43 @@ USE_MULTIPROCESSING = False
 VALIDATION_STEPS =
 VALIDATION_BATCH_SIZE = 1
 VALIDATION_FREQ =
-CHECKPOINTS_TO_KEEP = 100
-KEEP_CHECKPOINT_EVERY_N_HOURS = 1
 CACHE_DATASET = True
 VERBOSE = auto
+
+[Checkpoints]
+ENABLED = True
+CHECKPOINT_FILENAME = weights.{epoch:02d}-{val_loss:.2f}.hdf5
+MONITOR_METRIC = val_loss
+VERBOSE = 1
+SAVE_BEST_ONLY = True
+SAVE_WEIGHTS_ONLY = True
+MODE = auto
+SAVE_FREQ = epoch
+INITIAL_VALUE_THRESHOLD =
+
+[Backup]
+ENABLED = False
+SAVE_FREQ = epoch
+DELETE_CHECKPOINT = True
+SAVE_BEFORE_PREEMPTION = False
+
+[Tensorboard]
+ENABLED = True
+HISTOGRAM_FREQ = 0
+WRITE_GRAPH = True
+WRITE_IMAGES = False
+WRITE_STEPS_PER_SECOND = False
+UPDATE_FREQ = "Epoch"
+PROFILE_BATCH = 0
+EMBEDDINGS_FREQ = 0
+
+[EarlyStopping]
+ENABLED = False
+MONITOR = val_loss
+MIN_DELTA = 0
+PATIENCE = 0
+VERBOSE = 0
+MODE = "auto"
+BASELINE =
+RESTORE_BEST_WEIGHTS = False
+START_FROM_EPOCH = 0

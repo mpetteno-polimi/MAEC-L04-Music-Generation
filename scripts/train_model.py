@@ -4,11 +4,16 @@ from modules import utilities
 from modules.data.augmentation.noteseq import NoteSequenceAugmenter
 from modules.data.converters.pianoroll import PianoRollConverter
 from modules.data.loaders.tfrecord import TFRecordLoader
+from modules.model.cnn import CNN
+from modules.model.decoder import HierarchicalDecoder
+from modules.model.encoder import BidirectionalLstmEncoder
+from modules.model.maec_vae import MaecVAE
 
 if __name__ == "__main__":
     representation_config = utilities.load_configuration_section(ConfigSections.REPRESENTATION)
     training_config = utilities.load_configuration_section(ConfigSections.TRAINING)
 
+    # Load data
     train_tfrecord = training_config.get("train_examples_path")
     validation_tfrecord = training_config.get("validation_examples_path")
 
@@ -34,7 +39,16 @@ if __name__ == "__main__":
 
     train_dataset = tfrecord_loader.load(train_tfrecord)
     validation_dataset = tfrecord_loader.load(validation_tfrecord)
+    # sequence = next(iter(train_dataset))
 
-    sequence = next(iter(train_dataset))
+    # Create the model
+    vae = MaecVAE(
+        encoder=BidirectionalLstmEncoder(),
+        decoder=HierarchicalDecoder(),
+        cnn=CNN()
+    )
+    vae.build()
+    # vae.summary()
 
-    # TODO - Launch model train
+    # Start training
+    vae.train(train_dataset, validation_dataset)
