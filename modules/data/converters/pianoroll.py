@@ -12,89 +12,11 @@ from modules.data.representation.pianoroll_sequence import PianorollSequence
 from modules.data.utils import statistics
 
 
-def extract_pianoroll_sequences(quantized_sequence, start_step=0, min_steps_discard=None,
-                                max_steps_discard=None, max_steps_truncate=None):
-    """Extracts a polyphonic track from the given quantized NoteSequence.
-
-    Currently, this extracts only one pianoroll from a given track.
-
-    Args:
-      quantized_sequence: A quantized NoteSequence.
-      start_step: Start extracting a sequence at this time step. Assumed
-          to be the beginning of a bar.
-      min_steps_discard: Minimum length of tracks in steps. Shorter tracks are
-          discarded.
-      max_steps_discard: Maximum length of tracks in steps. Longer tracks are
-          discarded. Mutually exclusive with `max_steps_truncate`.
-      max_steps_truncate: Maximum length of tracks in steps. Longer tracks are
-          truncated. Mutually exclusive with `max_steps_discard`.
-
-    Returns:
-      pianoroll_seqs: A python list of PianorollSequence instances.
-      stats: A dictionary mapping string names to `statistics.Statistic` objects.
-
-    Raises:
-      ValueError: If both `max_steps_discard` and `max_steps_truncate` are
-          specified.
-    """
-
-    if (max_steps_discard, max_steps_truncate).count(None) == 0:
-        raise ValueError(
-            'Only one of `max_steps_discard` and `max_steps_truncate` can be '
-            'specified.')
-    sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
-
-    # pylint: disable=g-complex-comprehension
-    stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
-                 ['pianoroll_tracks_truncated_too_long',
-                  'pianoroll_tracks_discarded_too_short',
-                  'pianoroll_tracks_discarded_too_long',
-                  'pianoroll_tracks_discarded_more_than_1_program'])
-    # pylint: enable=g-complex-comprehension
-
-    steps_per_bar = sequences_lib.steps_per_bar_in_quantized_sequence(
-        quantized_sequence)
-
-    # Create a histogram measuring lengths (in bars not steps).
-    stats['pianoroll_track_lengths_in_bars'] = statistics.Histogram(
-        'pianoroll_track_lengths_in_bars',
-        [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, 1000])
-
-    # Allow only 1 program.
-    programs = set()
-    for note in quantized_sequence.notes:
-        programs.add(note.program)
-    if len(programs) > 1:
-        stats['pianoroll_tracks_discarded_more_than_1_program'].increment()
-        return [], list(stats.values())
-
-    # Translate the quantized sequence into a PianorollSequence.
-    pianoroll_seq = PianorollSequence(quantized_sequence=quantized_sequence,
-                                      start_step=start_step)
-
-    pianoroll_seqs = []
-    num_steps = pianoroll_seq.num_steps
-
-    if min_steps_discard is not None and num_steps < min_steps_discard:
-        stats['pianoroll_tracks_discarded_too_short'].increment()
-    elif max_steps_discard is not None and num_steps > max_steps_discard:
-        stats['pianoroll_tracks_discarded_too_long'].increment()
-    else:
-        if max_steps_truncate is not None and num_steps > max_steps_truncate:
-            stats['pianoroll_tracks_truncated_too_long'].increment()
-            pianoroll_seq.set_length(max_steps_truncate)
-        pianoroll_seqs.append(pianoroll_seq)
-        stats['pianoroll_track_lengths_in_bars'].increment(
-            num_steps // steps_per_bar)
-    return pianoroll_seqs, list(stats.values())
-
-
 class PianoRollConverter(BaseNoteSequenceConverter):
     """ TODO - Class DOC """
 
     def __init__(self, min_pitch, max_pitch, min_steps_discard=None, max_steps_discard=None, max_bars=None,
-                 slice_bars=None, steps_per_quarter=4, quarters_per_bar=4, pad_to_total_time=False,
-                 max_tensors_per_notesequence=None, presplit_on_time_changes=True):
+                 slice_bars=16, steps_per_quarter=4, quarters_per_bar=4, pad_to_total_time=True):
         self._min_pitch = min_pitch
         self._max_pitch = max_pitch
         self._min_steps_discard = min_steps_discard if min_steps_discard else quarters_per_bar * steps_per_quarter
@@ -105,32 +27,26 @@ class PianoRollConverter(BaseNoteSequenceConverter):
         self._pad_to_total_time = pad_to_total_time
 
         self._pianoroll_extractor_fn = functools.partial(
-            extract_pianoroll_sequences,
+            self._extract_pianoroll_sequences,
             start_step=0,
             min_steps_discard=self._min_steps_discard,
             max_steps_discard=self._max_steps_discard,
             max_steps_truncate=self._steps_per_bar * max_bars if max_bars else None
         )
 
-        # We have two classes for event: one for the velocity and the other for the repeated flag
+        # We have two classes for event: one for the velocity and the other for the note repeated flag
         num_classes = 2 * (max_pitch - min_pitch + 1)
 
         self._pr_encoder_decoder = PianorollEncoderDecoder(input_size=num_classes)
 
-        input_depth = num_classes
-        output_depth = num_classes
-
         super(PianoRollConverter, self).__init__(
-            input_depth=input_depth,
+            input_depth=num_classes,
             input_dtype=np.float32,
-            output_depth=output_depth,
-            output_dtype=np.float32,
-            presplit_on_time_changes=presplit_on_time_changes,
-            max_tensors_per_notesequence=max_tensors_per_notesequence
+            output_depth=num_classes,
+            output_dtype=np.float32
         )
 
-    def _to_tensors_fn(self, note_sequence):
-        """Converts NoteSequence to unique sequences."""
+    def to_tensors(self, note_sequence):
 
         # Quantize sequence
         try:
@@ -160,69 +76,17 @@ class PianoRollConverter(BaseNoteSequenceConverter):
         else:
             sliced_event_tuples = [tuple(l) for l in event_lists]
 
+        # Discard duplicated sequences
         unique_event_tuples = list(set(sliced_event_tuples))
 
+        # Encode events to piano roll
         rolls = []
         for t in unique_event_tuples:
             rolls.append(np.vstack([self._pr_encoder_decoder.events_to_input(t, i) for i in range(len(t))]))
 
-        input_seqs = rolls
-        output_seqs = rolls
+        return ConverterTensors(inputs=rolls, outputs=rolls)
 
-        return ConverterTensors(inputs=input_seqs, outputs=output_seqs)
-
-    def to_tensors(self, item):
-
-        def maybe_sample_items(seq, sample_size, randomize):
-            """Samples a seq if `sample_size` is provided and less than seq size."""
-            if not sample_size or len(seq) <= sample_size:
-                return seq
-            if randomize:
-                indices = set(np.random.choice(len(seq), size=sample_size, replace=False))
-                return [seq[i] for i in indices]
-            else:
-                return seq[:sample_size]
-
-        def combine_converter_tensors(converter_tensors, max_num_tensors=None, randomize_sample=True):
-            """Combines multiple `ConverterTensors` into one and samples if required."""
-            results = []
-            for result in converter_tensors:
-                results.extend(zip(*result))
-            sampled_results = maybe_sample_items(results, max_num_tensors, randomize_sample)
-            if sampled_results:
-                return ConverterTensors(*zip(*sampled_results))
-            else:
-                return ConverterTensors()
-
-        def split_process_and_combine(note_sequence, split, sample_size, randomize, to_tensors_fn):
-            """Splits a `NoteSequence`, processes and combines the `ConverterTensors`.
-            Args:
-              note_sequence: The `NoteSequence` to split, process and combine.
-              split: If True, the given note_sequence is split into multiple based on time
-                changes, and the tensor outputs are concatenated.
-              sample_size: Outputs are sampled if size exceeds this value.
-              randomize: If True, outputs are randomly sampled (this is generally done
-                during training).
-              to_tensors_fn: A fn that converts a `NoteSequence` to `ConverterTensors`.
-            Returns:
-              A `ConverterTensors` obj.
-            """
-            note_sequences = sequences_lib.split_note_sequence_on_time_changes(
-                note_sequence) if split else [note_sequence]
-            results = []
-            for ns in note_sequences:
-                tensors = to_tensors_fn(ns)
-                sampled_results = maybe_sample_items(list(zip(*tensors)), sample_size, randomize)
-                if sampled_results:
-                    results.append(ConverterTensors(*zip(*sampled_results)))
-                else:
-                    results.append(ConverterTensors())
-            return combine_converter_tensors(results, sample_size, randomize)
-
-        return split_process_and_combine(item, self._presplit_on_time_changes, self.max_tensors_per_notesequence,
-                                         self.is_training, self._to_tensors_fn)
-
-    def from_tensors(self, samples, controls=None):
+    def from_tensors(self, samples):
         output_sequences = []
         for s in samples:
             pr_sequence = PianorollSequence(
@@ -231,8 +95,82 @@ class PianoRollConverter(BaseNoteSequenceConverter):
                 min_pitch=self._min_pitch,
                 max_pitch=self._max_pitch
             )
-
             output_sequence = pr_sequence.to_sequence()
             output_sequences.append(output_sequence)
 
         return output_sequences
+
+    @staticmethod
+    def _extract_pianoroll_sequences(quantized_sequence, start_step=0, min_steps_discard=None,
+                                     max_steps_discard=None, max_steps_truncate=None):
+        """Extracts a polyphonic track from the given quantized NoteSequence.
+
+        Currently, this extracts only one pianoroll from a given track.
+
+        Args:
+          quantized_sequence: A quantized NoteSequence.
+          start_step: Start extracting a sequence at this time step. Assumed
+              to be the beginning of a bar.
+          min_steps_discard: Minimum length of tracks in steps. Shorter tracks are
+              discarded.
+          max_steps_discard: Maximum length of tracks in steps. Longer tracks are
+              discarded. Mutually exclusive with `max_steps_truncate`.
+          max_steps_truncate: Maximum length of tracks in steps. Longer tracks are
+              truncated. Mutually exclusive with `max_steps_discard`.
+
+        Returns:
+          pianoroll_seqs: A python list of PianorollSequence instances.
+          stats: A dictionary mapping string names to `statistics.Statistic` objects.
+
+        Raises:
+          ValueError: If both `max_steps_discard` and `max_steps_truncate` are
+              specified.
+        """
+
+        if (max_steps_discard, max_steps_truncate).count(None) == 0:
+            raise ValueError(
+                'Only one of `max_steps_discard` and `max_steps_truncate` can be '
+                'specified.')
+        sequences_lib.assert_is_relative_quantized_sequence(quantized_sequence)
+
+        stats = dict((stat_name, statistics.Counter(stat_name)) for stat_name in
+                     ['pianoroll_tracks_truncated_too_long',
+                      'pianoroll_tracks_discarded_too_short',
+                      'pianoroll_tracks_discarded_too_long',
+                      'pianoroll_tracks_discarded_more_than_1_program'])
+
+        steps_per_bar = sequences_lib.steps_per_bar_in_quantized_sequence(
+            quantized_sequence)
+
+        # Create a histogram measuring lengths (in bars not steps).
+        stats['pianoroll_track_lengths_in_bars'] = statistics.Histogram(
+            'pianoroll_track_lengths_in_bars',
+            [0, 1, 10, 20, 30, 40, 50, 100, 200, 500, 1000])
+
+        # Allow only 1 program.
+        programs = set()
+        for note in quantized_sequence.notes:
+            programs.add(note.program)
+        if len(programs) > 1:
+            stats['pianoroll_tracks_discarded_more_than_1_program'].increment()
+            return [], list(stats.values())
+
+        # Translate the quantized sequence into a PianorollSequence.
+        pianoroll_seq = PianorollSequence(quantized_sequence=quantized_sequence,
+                                          start_step=start_step)
+
+        pianoroll_seqs = []
+        num_steps = pianoroll_seq.num_steps
+
+        if min_steps_discard is not None and num_steps < min_steps_discard:
+            stats['pianoroll_tracks_discarded_too_short'].increment()
+        elif max_steps_discard is not None and num_steps > max_steps_discard:
+            stats['pianoroll_tracks_discarded_too_long'].increment()
+        else:
+            if max_steps_truncate is not None and num_steps > max_steps_truncate:
+                stats['pianoroll_tracks_truncated_too_long'].increment()
+                pianoroll_seq.set_length(max_steps_truncate)
+            pianoroll_seqs.append(pianoroll_seq)
+            stats['pianoroll_track_lengths_in_bars'].increment(
+                num_steps // steps_per_bar)
+        return pianoroll_seqs, list(stats.values())

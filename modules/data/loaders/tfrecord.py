@@ -56,6 +56,7 @@ class TFRecordLoader(DataLoader):
             return inputs, outputs
 
         batch_size = self._training_config.get("batch_size")
+
         dataset = load_dataset()
         dataset = dataset.map(self._augmenter.tf_augment, num_parallel_calls=tf.data.AUTOTUNE)
         dataset = dataset.map(
@@ -70,5 +71,6 @@ class TFRecordLoader(DataLoader):
         dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
         dataset = dataset.batch(batch_size=batch_size)
         dataset.padded_batch(batch_size=batch_size, drop_remainder=True)
+
         return dataset
 

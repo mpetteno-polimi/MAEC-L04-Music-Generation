@@ -57,28 +57,20 @@ class BaseNoteSequenceConverter(object):
                  input_depth,
                  input_dtype,
                  output_depth,
-                 output_dtype,
-                 max_tensors_per_notesequence=None,
-                 presplit_on_time_changes=True):
+                 output_dtype):
         """Initializes BaseNoteSequenceConverter.
         Args:
           input_depth: Depth of final dimension of input (encoder) tensors.
           input_dtype: DType of input (encoder) tensors.
           output_depth: Depth of final dimension of output (decoder) tensors.
           output_dtype: DType of output (decoder) tensors.
-          max_tensors_per_notesequence: The maximum number of outputs to return for
-              each input.
-          presplit_on_time_changes: Whether to split NoteSequence on time changes
-            before converting.
         """
         self._input_depth = input_depth
         self._input_dtype = input_dtype
         self._output_depth = output_depth
         self._output_dtype = output_dtype
-        self._max_tensors_per_input = max_tensors_per_notesequence
         self._str_to_item_fn = note_seq.NoteSequence.FromString
         self._mode = None
-        self._presplit_on_time_changes = presplit_on_time_changes
 
     def set_mode(self, mode):
         if mode not in ['train', 'eval', 'infer']:
@@ -96,14 +88,6 @@ class BaseNoteSequenceConverter(object):
     @property
     def str_to_item_fn(self):
         return self._str_to_item_fn
-
-    @property
-    def max_tensors_per_notesequence(self):
-        return self._max_tensors_per_input
-
-    @max_tensors_per_notesequence.setter
-    def max_tensors_per_notesequence(self, value):
-        self._max_tensors_per_input = value
 
     @property
     def input_depth(self):

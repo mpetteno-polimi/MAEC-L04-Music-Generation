@@ -15,14 +15,11 @@ if __name__ == "__main__":
     data_converter = PianoRollConverter(
         min_pitch=representation_config.get("piano_min_midi_pitch"),
         max_pitch=representation_config.get("piano_max_midi_pitch"),
-        max_steps_discard=None,
-        max_bars=None,
+        max_steps_discard=representation_config.get("max_steps_discard"),
+        max_bars=representation_config.get("max_bars"),
         slice_bars=representation_config.get("slice_bars"),
         steps_per_quarter=representation_config.get("steps_per_quarter"),
-        quarters_per_bar=representation_config.get("quarters_per_bar"),
-        pad_to_total_time=True,
-        max_tensors_per_notesequence=None,
-        presplit_on_time_changes=True
+        quarters_per_bar=representation_config.get("quarters_per_bar")
     )
     data_converter.set_mode('train')
 
@@ -39,6 +36,5 @@ if __name__ == "__main__":
     validation_dataset = tfrecord_loader.load(validation_tfrecord)
 
     sequence = next(iter(train_dataset))
-    pass
 
     # TODO - Launch model train
