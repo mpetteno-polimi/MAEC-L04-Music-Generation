@@ -62,7 +62,7 @@ def get_tfrecords_path_for_source_datasets(source_datasets, input_path: Path, mo
     return tfrecord_paths
 
 
-def generate_note_sequence_id(self, filename, collection_name, source_type):
+def generate_note_sequence_id(filename, collection_name, source_type):
     """Generates a unique ID for a sequence.
     The format is:'/id/<type>/<collection name>/<hash>'.
     Args:
@@ -74,5 +74,4 @@ def generate_note_sequence_id(self, filename, collection_name, source_type):
       The generated sequence ID as a string.
     """
     filename_fingerprint = hashlib.sha1(filename.encode('utf-8'))
-    return '/id/%s/%s/%s' % (
-        source_type.lower(), collection_name, filename_fingerprint.hexdigest())
+    return '/id/%s/%s/%s' % (source_type.lower(), collection_name, filename_fingerprint.hexdigest())
