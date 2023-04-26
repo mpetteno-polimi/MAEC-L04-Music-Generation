@@ -2,15 +2,14 @@
 
 import functools
 
-import tensorflow as tf
 import note_seq
 import numpy as np
-from magenta.pipelines import statistics
-from magenta.models.music_vae import data as music_vae_data
 from note_seq import sequences_lib
 
+from modules.data.converters.dataconverter import BaseNoteSequenceConverter, ConverterTensors
 from modules.data.representation.pianoroll_encoder_decoder import PianorollEncoderDecoder
 from modules.data.representation.pianoroll_sequence import PianorollSequence
+from modules.data.utils import statistics
 
 
 def extract_pianoroll_sequences(quantized_sequence, start_step=0, min_steps_discard=None,
@@ -90,16 +89,15 @@ def extract_pianoroll_sequences(quantized_sequence, start_step=0, min_steps_disc
     return pianoroll_seqs, list(stats.values())
 
 
-class PianoRollConverter(music_vae_data.BaseNoteSequenceConverter):
+class PianoRollConverter(BaseNoteSequenceConverter):
     """ TODO - Class DOC """
 
-    def __init__(self, min_pitch=music_vae_data.PIANO_MIN_MIDI_PITCH, max_pitch=music_vae_data.PIANO_MAX_MIDI_PITCH,
-                 min_steps_discard=None, max_steps_discard=None, max_bars=None, slice_bars=None, add_end_token=False,
-                 steps_per_quarter=4, quarters_per_bar=4, pad_to_total_time=False, max_tensors_per_notesequence=None,
-                 presplit_on_time_changes=True):
+    def __init__(self, min_pitch, max_pitch, min_steps_discard=None, max_steps_discard=None, max_bars=None,
+                 slice_bars=None, steps_per_quarter=4, quarters_per_bar=4, pad_to_total_time=False,
+                 max_tensors_per_notesequence=None, presplit_on_time_changes=True):
         self._min_pitch = min_pitch
         self._max_pitch = max_pitch
-        self._min_steps_discard = min_steps_discard
+        self._min_steps_discard = min_steps_discard if min_steps_discard else quarters_per_bar * steps_per_quarter
         self._max_steps_discard = max_steps_discard
         self._steps_per_quarter = steps_per_quarter
         self._steps_per_bar = steps_per_quarter * quarters_per_bar
@@ -117,17 +115,16 @@ class PianoRollConverter(music_vae_data.BaseNoteSequenceConverter):
         # We have two classes for event: one for the velocity and the other for the repeated flag
         num_classes = 2 * (max_pitch - min_pitch + 1)
 
-        self._pr_encoder_decoder = PianorollEncoderDecoder(input_size=num_classes + add_end_token)
+        self._pr_encoder_decoder = PianorollEncoderDecoder(input_size=num_classes)
 
-        input_depth = num_classes + add_end_token
-        output_depth = num_classes + add_end_token
+        input_depth = num_classes
+        output_depth = num_classes
 
         super(PianoRollConverter, self).__init__(
             input_depth=input_depth,
-            input_dtype=np.bool,
+            input_dtype=np.float32,
             output_depth=output_depth,
-            output_dtype=np.bool,
-            end_token=output_depth - 1 if add_end_token else None,
+            output_dtype=np.float32,
             presplit_on_time_changes=presplit_on_time_changes,
             max_tensors_per_notesequence=max_tensors_per_notesequence
         )
@@ -139,15 +136,14 @@ class PianoRollConverter(music_vae_data.BaseNoteSequenceConverter):
         try:
             quantized_sequence = note_seq.quantize_note_sequence(note_sequence, self._steps_per_quarter)
             if note_seq.steps_per_bar_in_quantized_sequence(quantized_sequence) != self._steps_per_bar:
-                return music_vae_data.ConverterTensors()
+                return ConverterTensors()
         except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError, note_seq.NegativeTimeError):
-            return music_vae_data.ConverterTensors()
+            return ConverterTensors()
 
         # TODO - Keep only notes for valid programs
 
         # Extract piano-roll events
         event_lists, stats = self._pianoroll_extractor_fn(quantized_sequence)
-        # tf.compat.v1.logging.info("Piano-roll Sequence Stats: \n{}".format(stats))
 
         # Pad events with silence to total quantization time if the sequence is shorter
         if self._pad_to_total_time:
@@ -165,39 +161,70 @@ class PianoRollConverter(music_vae_data.BaseNoteSequenceConverter):
             sliced_event_tuples = [tuple(l) for l in event_lists]
 
         unique_event_tuples = list(set(sliced_event_tuples))
-        unique_event_tuples = music_vae_data.maybe_sample_items(unique_event_tuples,
-                                                                self.max_tensors_per_notesequence,
-                                                                self.is_training)
 
-        # TODO - What is the purpose of an end token? Variable length inputs?
         rolls = []
         for t in unique_event_tuples:
-            if self.end_token is not None:
-                t_roll = list(t) + [self._pr_encoder_decoder.input_size - 1]
-            else:
-                t_roll = t
-            rolls.append(np.vstack([self._pr_encoder_decoder.events_to_input(t_roll, i) for i in range(len(t_roll))]))
+            rolls.append(np.vstack([self._pr_encoder_decoder.events_to_input(t, i) for i in range(len(t))]))
 
         input_seqs = rolls
         output_seqs = rolls
 
-        return music_vae_data.ConverterTensors(inputs=input_seqs, outputs=output_seqs)
+        return ConverterTensors(inputs=input_seqs, outputs=output_seqs)
 
     def to_tensors(self, item):
-        note_sequence = item
-        return music_vae_data.split_process_and_combine(note_sequence,
-                                                        self._presplit_on_time_changes,
-                                                        self.max_tensors_per_notesequence,
-                                                        self.is_training, self._to_tensors_fn)
+
+        def maybe_sample_items(seq, sample_size, randomize):
+            """Samples a seq if `sample_size` is provided and less than seq size."""
+            if not sample_size or len(seq) <= sample_size:
+                return seq
+            if randomize:
+                indices = set(np.random.choice(len(seq), size=sample_size, replace=False))
+                return [seq[i] for i in indices]
+            else:
+                return seq[:sample_size]
+
+        def combine_converter_tensors(converter_tensors, max_num_tensors=None, randomize_sample=True):
+            """Combines multiple `ConverterTensors` into one and samples if required."""
+            results = []
+            for result in converter_tensors:
+                results.extend(zip(*result))
+            sampled_results = maybe_sample_items(results, max_num_tensors, randomize_sample)
+            if sampled_results:
+                return ConverterTensors(*zip(*sampled_results))
+            else:
+                return ConverterTensors()
+
+        def split_process_and_combine(note_sequence, split, sample_size, randomize, to_tensors_fn):
+            """Splits a `NoteSequence`, processes and combines the `ConverterTensors`.
+            Args:
+              note_sequence: The `NoteSequence` to split, process and combine.
+              split: If True, the given note_sequence is split into multiple based on time
+                changes, and the tensor outputs are concatenated.
+              sample_size: Outputs are sampled if size exceeds this value.
+              randomize: If True, outputs are randomly sampled (this is generally done
+                during training).
+              to_tensors_fn: A fn that converts a `NoteSequence` to `ConverterTensors`.
+            Returns:
+              A `ConverterTensors` obj.
+            """
+            note_sequences = sequences_lib.split_note_sequence_on_time_changes(
+                note_sequence) if split else [note_sequence]
+            results = []
+            for ns in note_sequences:
+                tensors = to_tensors_fn(ns)
+                sampled_results = maybe_sample_items(list(zip(*tensors)), sample_size, randomize)
+                if sampled_results:
+                    results.append(ConverterTensors(*zip(*sampled_results)))
+                else:
+                    results.append(ConverterTensors())
+            return combine_converter_tensors(results, sample_size, randomize)
+
+        return split_process_and_combine(item, self._presplit_on_time_changes, self.max_tensors_per_notesequence,
+                                         self.is_training, self._to_tensors_fn)
 
     def from_tensors(self, samples, controls=None):
         output_sequences = []
         for s in samples:
-            if self.end_token is not None:
-                end_i = np.where(s[:, self.end_token])
-                if len(end_i):
-                    s = s[:end_i[0]]
-
             pr_sequence = PianorollSequence(
                 events_list=self._pr_encoder_decoder.input_to_events(s),
                 steps_per_quarter=self._steps_per_quarter,

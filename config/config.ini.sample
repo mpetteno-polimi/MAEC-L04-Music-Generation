@@ -1,10 +1,11 @@
 [Representation]
 PIANO_MIN_MIDI_PITCH = 21
 PIANO_MAX_MIDI_PITCH = 108
-QUARTER_PER_BARS = 4
+QUARTERS_PER_BAR = 4
 STEPS_PER_QUARTER = 4
 SLICE_BARS = 16
-TRANSPOSITION_RANGE = [-5, 5]
+TRANSPOSITION_MIN = -5
+TRANSPOSITION_MAX = 5
 
 [Datasets]
 MAESTRO_VERSION = 3.0.0
@@ -26,7 +27,8 @@ MAX_BETA = 0.2
 BETA_RATE = 0.0
 
 [Training]
-EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
+TRAIN_EXAMPLES_PATH = ./resources/datasets/records/noteseq/*-train.tfrecord
+VALIDATION_EXAMPLES_PATH = ./resources/datasets/records/noteseq/*-validation.tfrecord
 RUN_DIR = ./resources
 BATCH_SIZE = 64
 EPOCHS = 20

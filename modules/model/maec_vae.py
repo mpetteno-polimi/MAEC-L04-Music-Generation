@@ -24,7 +24,7 @@ class MaecVAE(object):
         self._cnn = cnn
 
     def build(self):
-        steps_per_bar = self._repr_config.get("quarter_per_bars") * self._repr_config.get("steps_per_quarter")
+        steps_per_bar = self._repr_config.get("quarters_per_bar") * self._repr_config.get("steps_per_quarter")
         seq_length = self._repr_config.get("slice_bars") * steps_per_bar
         frame_length = (self._repr_config.get("piano_max_midi_pitch") -
                         self._repr_config.get("piano_min_midi_pitch") + 1) * 2,
