@@ -25,8 +25,8 @@ class MaecVAE(keras.Model):
         z_mean, z_log_var, z = self.encoder(pianoroll, training=training, mask=mask)
         z_mean, z_log_var = self.kl_divergence_layer((z_mean, z_log_var))
         ssm_embedding = self.cnn(ssm, training=training, mask=mask)
-        decoder_input = self.concatenation_layer([z, ssm_embedding])
-        reconstruction = self.decoder([decoder_input, pianoroll, ssm], training=training, mask=mask)
+        z_ssm_embedding = self.concatenation_layer((z, ssm_embedding))
+        reconstruction = self.decoder((z_ssm_embedding, pianoroll, ssm), training=training, mask=mask)
         return reconstruction, z_mean, z_log_var
 
     def sample(self, inputs):
@@ -34,7 +34,7 @@ class MaecVAE(keras.Model):
         z_size = self._model_config.get("z_size")
         ssm_embedding = self.cnn(ssm, training=False)
         z_sample = K.random_normal(shape=z_size, mean=0.0, stddev=1.0)
-        decoder_input = self.concatenation_layer([z_sample, ssm_embedding])
+        decoder_input = self.concatenation_layer((z_sample, ssm_embedding))
         return self._decoder.decode(decoder_input, training=False)
 
     def loss_fn(self):

@@ -19,6 +19,8 @@ PLOT_DATA = False
 Z_SIZE = 512
 ENC_RNN_SIZE = [2048, 2048]
 DEC_RNN_SIZE = [1024, 1024]
+CONDUCTOR_LENGTH = 16
+DECODER_LENGTH = 16
 DROPOUT = 0
 CNN_ID = 'mobilenet_v1'
 CNN_ALPHA = 1.0
@@ -27,6 +29,8 @@ CNN_DROPOUT = 0.001
 FREE_BITS = 256
 MAX_BETA = 0.2
 BETA_RATE = 0.0
+TEACHER_FORCING = True
+TEACHER_FORCING_PROB = 0.5
 
 [Training]
 TRAIN_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord

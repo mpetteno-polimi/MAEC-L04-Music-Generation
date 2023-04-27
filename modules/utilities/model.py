@@ -81,4 +81,4 @@ def initial_cell_state_from_embedding(layer_size, embedding):
         name="z_to_initial_state"
     )(embedding)
     initial_cell_state = K.zeros(layer_size)
-    return [initial_hidden_state, initial_cell_state]
+    return initial_hidden_state, initial_cell_state
