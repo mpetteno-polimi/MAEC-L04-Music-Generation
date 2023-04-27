@@ -8,10 +8,11 @@ from modules.model.cnn import CNN
 from modules.model.decoder import HierarchicalDecoder
 from modules.model.encoder import BidirectionalLstmEncoder
 from modules.model.maec_vae import MaecVAE
+from modules.training.trainer import Trainer
 
 if __name__ == "__main__":
-    representation_config = utilities.load_configuration_section(ConfigSections.REPRESENTATION)
-    training_config = utilities.load_configuration_section(ConfigSections.TRAINING)
+    representation_config = utilities.config.load_configuration_section(ConfigSections.REPRESENTATION)
+    training_config = utilities.config.load_configuration_section(ConfigSections.TRAINING)
 
     # Load data
     train_tfrecord = training_config.get("train_examples_path")
@@ -42,13 +43,17 @@ if __name__ == "__main__":
     # sequence = next(iter(train_dataset))
 
     # Create the model
+    seq_length = data_converter.seq_length
+    frame_length = data_converter.input_depth
+    pianoroll_shape = (seq_length, frame_length)
+    ssm_shape = (seq_length, seq_length)
     vae = MaecVAE(
         encoder=BidirectionalLstmEncoder(),
         decoder=HierarchicalDecoder(),
-        cnn=CNN()
+        cnn=CNN(ssm_shape)
     )
-    vae.build()
     # vae.summary()
 
     # Start training
-    vae.train(train_dataset, validation_dataset)
+    trainer = Trainer(model=vae)
+    trainer.train(train_dataset, validation_dataset)

@@ -11,7 +11,7 @@ class DataLoader(ABC):
     """ TODO - Class DOC """
 
     def __init__(self):
-        self._training_config = utilities.load_configuration_section(ConfigSections.TRAINING)
+        self._training_config = utilities.config.load_configuration_section(ConfigSections.TRAINING)
 
     @abstractmethod
     def load(self, filenames: AnyStr) -> Any:

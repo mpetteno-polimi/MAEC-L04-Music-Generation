@@ -1,23 +1,21 @@
 # TODO - DOC
 
-from keras import applications
+from keras import applications, layers
 
 from definitions import ConfigSections
 from modules import utilities
 
 
-class CNN(object):
+class CNN(layers.Layer):
 
-    def __init__(self):
-        self._model_config = utilities.load_configuration_section(ConfigSections.MODEL)
-        self._model = None
+    def __init__(self, input_shape, name="cnn", **kwargs):
+        super(CNN, self).__init__(name=name, **kwargs)
+        self._model_config = utilities.config.load_configuration_section(ConfigSections.MODEL)
 
-    def build(self, seq_length):
         cnn_id = self._model_config.get("cnn_id")
-
         if cnn_id == 'mobilenet_v1':
             self._model = applications.MobileNet(
-                input_shape=(seq_length, seq_length, 1),
+                input_shape=input_shape,
                 alpha=self._model_config.get("cnn_alpha"),
                 depth_multiplier=self._model_config.get("cnn_depth_multiplier"),
                 dropout=self._model_config.get("cnn_dropout"),
@@ -28,8 +26,5 @@ class CNN(object):
         else:
             raise ValueError("CNN configuration {} not supported".format(cnn_id))
 
-    def embed(self, input_, is_training=True):
-        return self._model(input_) if is_training else self._model.predict(input_)
-
-    def summary(self):
-        self._model.summary()
+    def call(self, inputs, *args, **kwargs):
+        return self._model(inputs)

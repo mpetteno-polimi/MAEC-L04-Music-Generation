@@ -1,80 +1,50 @@
 # TODO - DOC
 
 import keras
-from keras import models, layers
-from keras import backend as K
+from keras import layers
 from keras.initializers import initializers
 
 from definitions import ConfigSections
 from modules import utilities
 
 
-class BidirectionalLstmEncoder(object):
+class BidirectionalLstmEncoder(keras.Model):
+    """Maps Pianoroll inputs to a triplet (z_mean, z_log_var, z)."""
 
-    def __init__(self):
-        self._model_config = utilities.load_configuration_section(ConfigSections.MODEL)
-        self._model = None
+    def __init__(self, name="bidirectional_lstm_encoder", **kwargs):
+        super(BidirectionalLstmEncoder, self).__init__(name=name, **kwargs)
+        self._model_config = utilities.config.load_configuration_section(ConfigSections.MODEL)
+        self._layers_sizes = self._model_config.get("enc_rnn_size")
 
-    def encode(self, input_):
-        return self._model(input_)
+        # Init bidirectional LSTM layers
+        self.bidirectional_lstm_layers = utilities.model.build_stacked_rnn_layers(
+            layers_sizes=self._model_config.get("enc_rnn_size"),
+            type="bidirectional_lstm"
+        )
 
-    def build(self, seq_length, frame_length, z_size):
+        # Init latent space layers
+        z_size = self._model_config.get("z_size")
 
-        def sampling(mu_log_variance):
-            mu, log_variance = mu_log_variance
-            epsilon = K.random_normal(shape=K.shape(mu), mean=0.0, stddev=1.0)
-            random_sample = mu + K.exp(log_variance / 2) * epsilon
-            return random_sample
-
-        def build_lstm_layer():
-            return layers.LSTM(
-                units=self._model_config.get("enc_rnn_size"),
-                activation="tanh",
-                recurrent_activation="sigmoid",
-                use_bias=True,
-                kernel_initializer="glorot_uniform",
-                recurrent_initializer="orthogonal",
-                bias_initializer="zeros",
-                unit_forget_bias=True,
-                dropout=self._model_config.get("enc_dropout"),
-                recurrent_dropout=0.0,
-                return_sequences=False,
-                return_state=False,
-                go_backwards=False,
-                stateful=False,
-                time_major=False,
-                unroll=False
-            )
-
-        def build_stacked_bidirectional_lstm_layer(num_layers, current_layer):
-            if num_layers == 0:
-                return current_layer
-            bidirectional_lstm_layer = layers.Bidirectional(layer=build_lstm_layer(), merge_mode="concat")
-            return build_stacked_bidirectional_lstm_layer(num_layers - 1, bidirectional_lstm_layer(current_layer))
-
-        encoder_inputs = keras.Input(shape=(seq_length, frame_length), name="encoder_input")
-
-        # Bidirectional LSTM layer
-        stacked_bidirectional_lstm_layer = build_stacked_bidirectional_lstm_layer(self._model_config.get("enc_layers"),
-                                                                                  encoder_inputs)
-
-        # Latent space layers
-        z_mean = layers.Dense(
+        self.dense_mean = layers.Dense(
             units=z_size,
             activation=None,
             use_bias=True,
             kernel_initializer=initializers.RandomNormal(stddev=0.001),
-            name="z_mean")(stacked_bidirectional_lstm_layer)
-        z_log_var = layers.Dense(
+            name="z_mean")
+
+        self.dense_log_var = layers.Dense(
             units=z_size,
             activation="softplus",
             use_bias=True,
             kernel_initializer=initializers.RandomNormal(stddev=0.001),
             bias_initializer="zeros",
-            name="z_log_var")(stacked_bidirectional_lstm_layer)
-        z = layers.Lambda(sampling, name="z")([z_mean, z_log_var])
+            name="z_log_var")
 
-        self._model = models.Model(encoder_inputs, [z_mean, z_log_var, z], name="encoder")
+        self.sampling = layers.Lambda(utilities.model.sampling, name="z")
 
-    def summary(self):
-        self._model.summary()
+    def call(self, inputs, *args, **kwargs):
+        encoder_output = utilities.model.call_stacked_rnn_layers(inputs, self.bidirectional_lstm_layers)
+        z_mean = self.dense_mean(encoder_output)
+        z_log_var = self.dense_log_var(encoder_output)
+        z = self.sampling((z_mean, z_log_var))
+        return z_mean, z_log_var, z

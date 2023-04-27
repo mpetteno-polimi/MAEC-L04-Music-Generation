@@ -9,7 +9,7 @@ from note_seq import sequences_lib
 from modules.data.converters.dataconverter import BaseNoteSequenceConverter, ConverterTensors
 from modules.data.representation.pianoroll_encoder_decoder import PianorollEncoderDecoder
 from modules.data.representation.pianoroll_sequence import PianorollSequence
-from modules.data.utils import statistics
+from modules.utilities import statistics
 
 
 class PianoRollConverter(BaseNoteSequenceConverter):
@@ -45,6 +45,10 @@ class PianoRollConverter(BaseNoteSequenceConverter):
             output_depth=num_classes,
             output_dtype=np.float32
         )
+
+    @property
+    def seq_length(self):
+        return self._slice_steps
 
     def to_tensors(self, note_sequence):
 

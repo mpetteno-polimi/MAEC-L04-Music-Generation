@@ -16,7 +16,7 @@ class Dataset(ABC):
     """ TODO - Class DOC """
 
     def __init__(self):
-        self._config_file = utilities.load_configuration_section(ConfigSections.DATASETS)
+        self._config_file = utilities.config.load_configuration_section(ConfigSections.DATASETS)
         self.dataset = None
         self._plot_data = self._config_file.get('plot_data')
 

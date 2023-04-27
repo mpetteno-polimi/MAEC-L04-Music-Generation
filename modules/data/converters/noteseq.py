@@ -7,7 +7,7 @@ import note_seq
 from note_seq import abc_parser
 
 from modules.data.converters.dataconverter import DataConverter
-from modules.utilities import generate_note_sequence_id
+from modules.utilities.data import generate_note_sequence_id
 
 
 class NoteSequenceConverter(DataConverter):
