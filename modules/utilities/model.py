@@ -2,6 +2,7 @@
 
 from keras import layers
 from keras import backend as K
+from keras.initializers import initializers
 
 from definitions import ConfigSections
 from modules.utilities import config
@@ -63,9 +64,21 @@ def build_stacked_rnn_layers(layers_sizes, type="lstm"):
     return rnn_layers
 
 
-def call_stacked_rnn_layers(inputs, rnn_layers):
-    output = rnn_layers[0](inputs)
+def call_stacked_rnn_layers(inputs, rnn_layers, initial_cell_state=None):
+    output = rnn_layers[0](inputs, initial_state=initial_cell_state)
     for i, bidirectional_lstm_layer in enumerate(rnn_layers, start=1):
         output = rnn_layers[i](output)
 
     return output
+
+
+def initial_cell_state_from_embedding(layer_size, embedding):
+    initial_hidden_state = layers.Dense(
+        units=layer_size,
+        activation='tanh',
+        use_bias=True,
+        kernel_initializer=initializers.RandomNormal(stddev=0.001),
+        name="z_to_initial_state"
+    )(embedding)
+    initial_cell_state = K.zeros(layer_size)
+    return [initial_hidden_state, initial_cell_state]
