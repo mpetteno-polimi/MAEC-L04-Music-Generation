@@ -1,12 +1,12 @@
 # TODO - DOC
 
-import tensorflow as tf
 import keras
-from keras import layers, losses, metrics
+from keras import layers, losses
 from keras import backend as K
 
 from definitions import ConfigSections
 from modules import utilities
+from modules.model.kl_divergence import KLDivergenceLayer
 
 
 class MaecVAE(keras.Model):
@@ -18,14 +18,12 @@ class MaecVAE(keras.Model):
         self.decoder = decoder
         self.cnn = cnn
         self.concatenation_layer = layers.Concatenate(axis=-1, name="z_concat")
-        # Metrics
-        self.total_loss_tracker = metrics.Mean(name="total_loss")
-        self.reconstruction_loss_tracker = metrics.Mean(name="reconstruction_loss")
-        self.kl_loss_tracker = metrics.Mean(name="kl_loss")
+        self.kl_divergence_layer = KLDivergenceLayer()
 
     def call(self, inputs, training=None, mask=None):
         pianoroll, ssm = inputs
         z_mean, z_log_var, z = self.encoder(pianoroll, training=training, mask=mask)
+        z_mean, z_log_var = self.kl_divergence_layer((z_mean, z_log_var))
         ssm_embedding = self.cnn(ssm, training=training, mask=mask)
         decoder_input = self.concatenation_layer([z, ssm_embedding])
         reconstruction = self.decoder([decoder_input, pianoroll, ssm], training=training, mask=mask)
@@ -39,50 +37,6 @@ class MaecVAE(keras.Model):
         decoder_input = self.concatenation_layer([z_sample, ssm_embedding])
         return self._decoder.decode(decoder_input, training=False)
 
-    def loss_function(self, inputs, outputs, z_mean, z_log_var):
-        free_bits = self._model_config.get("free_bits")
-        max_beta = self._model_config.get("max_beta")
-        beta_rate = self._model_config.get("beta_rate")
-
-        # Reconstruction loss # TODO - Reconstruction loss computation check
-        reconstruction_loss = tf.reduce_mean(tf.reduce_sum(losses.binary_crossentropy(inputs, outputs), axis=(1, 2)))
-
-        # KL divergence (explicit formula) - uses free bits as regularization parameter
-        kl_div = -0.5 * K.mean(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-        free_nats = free_bits * K.log(2.0)
-        kl_loss = K.maximum(kl_div - free_nats, 0)
-
-        bits = kl_div / K.log(2.0)
-        beta = (1.0 - K.pow(beta_rate, self.optimizer.iterations)) * max_beta
-        return reconstruction_loss, kl_loss, bits, beta
-
-    def train_step(self, data):
-        # Unpack the data. Its structure depends on your model and on what you pass to `fit()`.
-        pianoroll, ssm = data
-
-        with tf.GradientTape() as tape:
-            reconstruction, z_mean, z_log_var = self(data, training=True)
-            reconstruction_loss, kl_loss, kl_bits, kl_beta = self.loss_function(pianoroll, reconstruction, z_mean,
-                                                                                z_log_var)
-            total_loss = reconstruction_loss + kl_beta * kl_loss,
-
-        # Compute gradients
-        trainable_vars = self.trainable_variables
-        gradients = tape.gradient(total_loss, trainable_vars)
-        # Update weights
-        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
-
-        # Update metrics
-        self.total_loss_tracker.update_state(total_loss)
-        self.reconstruction_loss_tracker.update_state(reconstruction_loss)
-        self.kl_loss_tracker.update_state(kl_loss)
-        self.kl_bits_tracker.update_state(kl_bits)
-        self.kl_beta_tracker.update_state(kl_beta)
-
-        return {
-            "losses/total_loss": self.total_loss_tracker.result(),
-            "losses/reconstruction_loss": self.reconstruction_loss_tracker.result(),
-            "losses/kl_loss": self.kl_loss_tracker.result(),
-            'losses/kl_bits': self.kl_bits_tracker.result(),
-            'losses/kl_beta': self.kl_beta_tracker().result()
-        }
+    def loss_fn(self):
+        # TODO - Reconstruction loss computation check
+        return losses.MeanSquaredError(reduction="auto", name="mean_squared_error")

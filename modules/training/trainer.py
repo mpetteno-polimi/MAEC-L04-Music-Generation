@@ -36,7 +36,7 @@ class Trainer(object):
     def _compile_model(self):
         self._model.compile(
             optimizer=self.optimizer,
-            loss=None,
+            loss=self._model.loss_fn(),
             metrics=['accuracy'],
             loss_weights=None,
             weighted_metrics=None,
