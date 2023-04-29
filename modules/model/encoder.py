@@ -19,7 +19,7 @@ class BidirectionalLstmEncoder(keras.Model):
         # Init bidirectional LSTM layers
         self.bidirectional_lstm_layers = utilities.model.build_stacked_rnn_layers(
             layers_sizes=self._model_config.get("enc_rnn_size"),
-            type="bidirectional_lstm"
+            type_="bidirectional_lstm"
         )
 
         # Init latent space layers
@@ -30,7 +30,8 @@ class BidirectionalLstmEncoder(keras.Model):
             activation=None,
             use_bias=True,
             kernel_initializer=initializers.RandomNormal(stddev=0.001),
-            name="z_mean")
+            name="z_mean"
+        )
 
         self.dense_log_var = layers.Dense(
             units=z_size,
@@ -38,12 +39,17 @@ class BidirectionalLstmEncoder(keras.Model):
             use_bias=True,
             kernel_initializer=initializers.RandomNormal(stddev=0.001),
             bias_initializer="zeros",
-            name="z_log_var")
+            name="z_log_var"
+        )
 
         self.sampling = layers.Lambda(utilities.model.sampling, name="z")
 
-    def call(self, inputs, *args, **kwargs):
-        encoder_output = utilities.model.call_stacked_rnn_layers(inputs, self.bidirectional_lstm_layers)
+    def call(self, inputs, training=None, **kwargs):
+        encoder_output = utilities.model.call_stacked_rnn_layers(
+            inputs=inputs,
+            rnn_layers=self.bidirectional_lstm_layers,
+            training=training
+        )
         z_mean = self.dense_mean(encoder_output)
         z_log_var = self.dense_log_var(encoder_output)
         z = self.sampling((z_mean, z_log_var))

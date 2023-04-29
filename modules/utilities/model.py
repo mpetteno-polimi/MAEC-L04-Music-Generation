@@ -1,5 +1,6 @@
 # TODO - DOC
 
+import numpy as np
 from keras import layers
 from keras import backend as K
 from keras.initializers import initializers
@@ -17,7 +18,7 @@ def sampling(mu_log_variance):
     return random_sample
 
 
-def build_lstm_layer(lstm_size, return_sequences=False):
+def build_lstm_layer(lstm_size, return_sequences=False, return_state=False, stateful=False):
     return layers.LSTM(
         units=lstm_size,
         activation="tanh",
@@ -30,55 +31,67 @@ def build_lstm_layer(lstm_size, return_sequences=False):
         dropout=model_config.get("dropout"),
         recurrent_dropout=0.0,
         return_sequences=return_sequences,
-        return_state=False,
+        return_state=return_state,
         go_backwards=False,
-        stateful=False,
+        stateful=stateful,
         time_major=False,
         unroll=False
     )
 
 
-def build_bidirectional_lstm_layer(lstm_size, return_sequences=False):
+def build_bidirectional_lstm_layer(lstm_size, return_sequences=False, return_state=False, stateful=True):
     return layers.Bidirectional(
         layer=build_lstm_layer(lstm_size, return_sequences=return_sequences),
         merge_mode="concat"
     )
 
 
-def build_stacked_rnn_layers(layers_sizes, type="lstm"):
-    assert(len(layers_sizes) > 0)
+def build_stacked_rnn_layers(layers_sizes, type_="lstm", return_sequences=True, return_state=False, stateful=True):
+    assert (len(layers_sizes) > 0)
 
-    if type == "lstm":
+    if type_ == "lstm":
         rnn_build_fn = build_lstm_layer
-    elif type == "bidirectional_lstm":
+    elif type_ == "bidirectional_lstm":
         rnn_build_fn = build_bidirectional_lstm_layer
     else:
-        raise ValueError("RNN Layer of type {} not supporter".format(type))
+        raise ValueError("RNN Layer of type {} not supporter".format(type_))
 
     rnn_layers = []
     for i, layer_size in enumerate(layers_sizes):
         is_last_layer = (i == len(layers_sizes) - 1)
-        curr_layer = rnn_build_fn(layer_size, return_sequences=not is_last_layer)
+        curr_layer = rnn_build_fn(lstm_size=layer_size,
+                                  return_sequences=not is_last_layer or return_sequences,
+                                  return_state=return_state,
+                                  stateful=stateful)
         rnn_layers.append(curr_layer)
 
     return rnn_layers
 
 
-def call_stacked_rnn_layers(inputs, rnn_layers, initial_cell_state=None):
-    output = rnn_layers[0](inputs, initial_state=initial_cell_state)
+def call_stacked_rnn_layers(inputs, rnn_layers, initial_cell_states=None, training=True):
+    output = rnn_layers[0](inputs, initial_state=initial_cell_states[0])
     for i, bidirectional_lstm_layer in enumerate(rnn_layers, start=1):
-        output = rnn_layers[i](output)
+        output = rnn_layers[i](output, initial_cell_state=initial_cell_states[i], training=training)
 
     return output
 
 
-def initial_cell_state_from_embedding(layer_size, embedding):
-    initial_hidden_state = layers.Dense(
-        units=layer_size,
+def initial_cell_states_from_embedding(layers_sizes, embedding):
+    def split(cell_states):
+        return np.split(ary=cell_states, indices_or_sections=flatten_state_sizes, axis=1)
+
+    def pack(cell_states):
+        return list(zip(cell_states, cell_states[1:]))
+
+    cell_state_sizes = [(layer_size / 2, layer_size / 2) for layer_size in layers_sizes]
+    flatten_state_sizes = K.flatten(cell_state_sizes)
+    initial_cell_states = layers.Dense(
+        units=sum(flatten_state_sizes),
         activation='tanh',
         use_bias=True,
         kernel_initializer=initializers.RandomNormal(stddev=0.001),
         name="z_to_initial_state"
     )(embedding)
-    initial_cell_state = K.zeros(layer_size)
-    return initial_hidden_state, initial_cell_state
+    split_initial_cell_states = layers.Lambda(split, name='initial_state_split')(initial_cell_states)
+    packed_initial_cell_states = layers.Lambda(pack, name='initial_state_pack')(split_initial_cell_states)
+    return packed_initial_cell_states
