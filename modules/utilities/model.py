@@ -2,7 +2,7 @@
 
 from keras import layers
 from keras import backend as K
-from keras.initializers import initializers
+from keras.initializers.initializers_v2 import RandomNormal
 
 from definitions import ConfigSections
 from modules.utilities import config
@@ -60,14 +60,16 @@ def build_stacked_rnn_layers(layers_sizes, type="lstm"):
         is_last_layer = (i == len(layers_sizes) - 1)
         curr_layer = rnn_build_fn(layer_size, return_sequences=not is_last_layer)
         rnn_layers.append(curr_layer)
-
     return rnn_layers
 
 
 def call_stacked_rnn_layers(inputs, rnn_layers, initial_cell_state=None):
     output = rnn_layers[0](inputs, initial_state=initial_cell_state)
     for i, bidirectional_lstm_layer in enumerate(rnn_layers, start=1):
-        output = rnn_layers[i](output)
+        if i < len(initial_cell_state):
+            output = rnn_layers[i](output, initial_state=initial_cell_state[i])
+        else:
+            output = rnn_layers[i](output)
 
     return output
 
@@ -77,7 +79,7 @@ def initial_cell_state_from_embedding(layer_size, embedding):
         units=layer_size,
         activation='tanh',
         use_bias=True,
-        kernel_initializer=initializers.RandomNormal(stddev=0.001),
+        kernel_initializer=RandomNormal(stddev=0.001),
         name="z_to_initial_state"
     )(embedding)
     initial_cell_state = K.zeros(layer_size)

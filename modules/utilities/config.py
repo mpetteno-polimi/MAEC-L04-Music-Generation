@@ -10,6 +10,9 @@ import configparser
 from typing import Mapping, Any
 from definitions import Paths
 
+import magenta.models.music_vae.configs
+
+
 
 def load_configuration_file() -> configparser.ConfigParser:
     """Loads the configuration file specified in modules.constants.Paths.MAIN_CONFIG_FILE.

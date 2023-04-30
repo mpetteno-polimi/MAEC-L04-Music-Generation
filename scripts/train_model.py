@@ -10,6 +10,7 @@ from modules.model.encoder import BidirectionalLstmEncoder
 from modules.model.maec_vae import MaecVAE
 from modules.training.trainer import Trainer
 
+
 if __name__ == "__main__":
     representation_config = utilities.config.load_configuration_section(ConfigSections.REPRESENTATION)
     training_config = utilities.config.load_configuration_section(ConfigSections.TRAINING)

@@ -43,6 +43,7 @@ class BidirectionalLstmEncoder(keras.Model):
         self.sampling = layers.Lambda(utilities.model.sampling, name="z")
 
     def call(self, inputs, *args, **kwargs):
+        #
         encoder_output = utilities.model.call_stacked_rnn_layers(inputs, self.bidirectional_lstm_layers)
         z_mean = self.dense_mean(encoder_output)
         z_log_var = self.dense_log_var(encoder_output)
