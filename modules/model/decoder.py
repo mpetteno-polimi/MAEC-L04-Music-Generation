@@ -1,5 +1,6 @@
 # TODO - DOC
 # todo: passing hidden states?
+#  https://stackoverflow.com/questions/42415909/initializing-lstm-hidden-state-tensorflow-keras
 import keras
 from keras import layers
 from keras import backend as K
@@ -45,12 +46,12 @@ class ConductorLayer(layers.Layer):
         conductor_input = K.zeros(
             shape=[batch_size, conductor_sequence_length, shape(z_ssm_embedding)[1]])  # todo: check 3rd dimension size
         fc_init = self.state_initializer(conductor_input)
-        h1, h2, c1, c2 = split(fc_init, 4, axis=1)
+        h1, c1, h2, c2 = split(fc_init, 4, axis=1)
 
         conductor_output = utilities.model.call_stacked_rnn_layers(
             inputs=conductor_input,
             rnn_layers=self.conductor,
-            initial_cell_state=[c1, c2]
+            initial_cell_state=[[h1, c1], [h2, c2]]
         )
         return conductor_output
 
@@ -118,7 +119,7 @@ class CoreDecoderLayer(layers.Layer):
         # takes conductor output i through fc layer and passes
         states = self.state_initializer(conductor_embedding)
         # splits it in four to initialize states
-        h1, h2, c1, c2 = split(states, 4, axis=1)
+        h1, c1, h2, c2 = split(states, 4, axis=1)
 
         outputs = []
         for i in range(self._model_config.get("slice_bars")):
@@ -131,7 +132,7 @@ class CoreDecoderLayer(layers.Layer):
             previous = utilities.model.call_stacked_rnn_layers(
                 inputs=core_dec_in,
                 rnn_layers=self.conductor,
-                initial_cell_state=[c1, c2]
+                initial_cell_state=[[h1, c1], [h2, c2]]
             )
 
             outputs.append(previous)
