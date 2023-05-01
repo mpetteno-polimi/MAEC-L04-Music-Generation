@@ -16,7 +16,7 @@ class ConductorLayer(layers.Layer):
         self._model_config = utilities.config.load_configuration_section(ConfigSections.MODEL)
 
         self.state_initializer = layers.Dense(
-            units=4 * self._model_config.get("dec_rnn_size"),
+            units=4*self._model_config.get("dec_rnn_size"),
             activation='tanh',
             use_bias=True,
             kernel_initializer=RandomNormal(stddev=0.001),
@@ -42,9 +42,9 @@ class ConductorLayer(layers.Layer):
         # )
         # TODO - Create tensor for conductor input based on pianoroll tensor y dimension it should be
         #  [batch_size x conductor_seq_len x pianoroll_y (+ ssm)]
-        conductor_input = layers.Input(
+        conductor_input = K.zeros(
             shape=[batch_size, conductor_sequence_length, shape(z_ssm_embedding)[1]])  # todo: check 3rd dimension size
-        fc_init = self.state_initializer()
+        fc_init = self.state_initializer(conductor_input)
         h1, h2, c1, c2 = split(fc_init, 4, axis=1)
 
         conductor_output = utilities.model.call_stacked_rnn_layers(
@@ -95,7 +95,6 @@ class CoreDecoderLayer(layers.Layer):
         :return:
         """
 
-        z_size = self._model_config.get("z_size")
         batch_size = self._model_config.get("batch_size")
         dec_rnn_size = self._model_config.get("dec_rnn_size")
         output_depth = self._model_config.get('piano_min_midi_pitch') - self._model_config.get(
@@ -153,17 +152,18 @@ class HierarchicalDecoder(layers.Layer):
         z_ssm_embedding, pianoroll, ssm = inputs
         output_depth = self._model_config.get('piano_min_midi_pitch') - self._model_config.get(
             'piano_min_midi_pitch') + 1
+        batch_size = self._model_config.get("batch_size")
 
-        # conductor - out [batch_size, CONDUCTOR_LENGTH, DEC_RNN_SIZE]
+        # conductor - out [batch_size, conductor_length, dec_rnn_size]
         conductor_output = self.conductor(inputs, training=False)
         conductor_output = unstack(conductor_output, axis=1)
 
         # decode conductor embeddings
         outputs = []
-        previous = keras.Input(shape=(self.batch_size, output_depth))
+        previous = K.zeros(shape=(batch_size, output_depth))
 
         for embedding in conductor_output:
-            decoder_out, last_out = self.core_decoder(embedding, previous=previous, training=False) #todo: add training param
+            decoder_out, last_out = self.core_decoder(embedding, previous=previous, training=False) # todo: add training param
             outputs.extend(decoder_out)
             previous = last_out
 
