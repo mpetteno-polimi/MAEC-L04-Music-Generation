@@ -3,7 +3,7 @@
 import keras
 from keras import layers
 from keras import backend as K
-from tensorflow import split, concat, shape
+from tensorflow import split, concat, shape, unstack
 from definitions import ConfigSections
 from modules import utilities
 from keras.initializers.initializers_v2 import RandomNormal
@@ -84,6 +84,17 @@ class CoreDecoderLayer(layers.Layer):
         )
 
     def call(self, inputs, training=False, *args, **kwargs):
+        """
+        The decoder
+        LSTM uses the embedding for the current bar concatenated with the output of the
+        following fully-connected layer as its input for the next time step
+        :param inputs:
+        :param training:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
         z_size = self._model_config.get("z_size")
         batch_size = self._model_config.get("batch_size")
         dec_rnn_size = self._model_config.get("dec_rnn_size")
@@ -126,7 +137,7 @@ class CoreDecoderLayer(layers.Layer):
 
             outputs.append(previous)
 
-        return outputs
+        return outputs, previous
 
 
 class HierarchicalDecoder(layers.Layer):
@@ -140,7 +151,23 @@ class HierarchicalDecoder(layers.Layer):
 
     def call(self, inputs, training=False, *args, **kwargs):
         z_ssm_embedding, pianoroll, ssm = inputs
+        output_depth = self._model_config.get('piano_min_midi_pitch') - self._model_config.get(
+            'piano_min_midi_pitch') + 1
+
+        # conductor - out [batch_size, CONDUCTOR_LENGTH, DEC_RNN_SIZE]
         conductor_output = self.conductor(inputs, training=False)
+        conductor_output = unstack(conductor_output, axis=1)
+
+        # decode conductor embeddings
+        outputs = []
+        previous = keras.Input(shape=(self.batch_size, output_depth))
+
+        for embedding in conductor_output:
+            decoder_out, last_out = self.core_decoder(embedding, previous=previous, training=False) #todo: add training param
+            outputs.extend(decoder_out)
+            previous = last_out
+
+
         decoder_output = self.core_decoder((conductor_output, pianoroll))
         # TODO - HierarchicalDecoder output layer call
         return
