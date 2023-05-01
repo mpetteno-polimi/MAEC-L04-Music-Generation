@@ -50,8 +50,8 @@ class TFRecordLoader(DataLoader):
                 inp=[item_scalar],
                 Tout=[converter.input_dtype, converter.output_dtype],
                 name='convert')
-            inputs.set_shape([None, None, converter.input_depth])
-            outputs.set_shape([None, None, converter.output_depth])
+            inputs.set_shape([None, converter.seq_length, converter.input_depth])
+            outputs.set_shape([None, converter.seq_length, converter.output_depth])
 
             return inputs, outputs
 

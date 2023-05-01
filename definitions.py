@@ -39,4 +39,4 @@ class Paths:
     TRAIN_DIR = RESOURCES_DIR / "train"
     TRAIN_CHECK_DIR = TRAIN_DIR / "checkpoints"
     TRAIN_BACKUP_DIR = TRAIN_DIR / "backup"
-    TRAIN_LOG_DIR = TRAIN_DIR / "logs"
+    LOG_DIR = RESOURCES_DIR / "logs"

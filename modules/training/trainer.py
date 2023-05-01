@@ -1,22 +1,24 @@
 # TODO - DOC
 
-from keras import optimizers, callbacks
+import keras
+import tensorflow as tf
+from keras import callbacks
 from keras import backend as K
 
 from definitions import ConfigSections, Paths
-from modules import utilities
+from modules.utilities import config
 
 
 class Trainer(object):
 
-    def __init__(self, model):
-        self._training_config = utilities.config.load_configuration_section(ConfigSections.TRAINING)
+    def __init__(self, model: keras.Model):
+        self._training_config = config.load_configuration_section(ConfigSections.TRAINING)
         self._model = model
-        self.optimizer = optimizers.Adam(
+        self.optimizer = tf.keras.optimizers.Adam(
             learning_rate=self._training_config.get("learning_rate"),
             beta_1=0.9,
             beta_2=0.999,
-            epsilon=1e-07,
+            epsilon=1e-7,
             amsgrad=False,
             weight_decay=None,
             clipnorm=self._training_config.get("clip_norm"),
@@ -47,19 +49,17 @@ class Trainer(object):
 
     def _fit_model(self, train_data, validation_data):
         history = self._model.fit(
-            x=train_data,
-            y=train_data,
+            train_data,
             batch_size=self._training_config.get("batch_size"),
             epochs=self._training_config.get("epochs"),
             verbose=self._training_config.get("verbose"),
             callbacks=self._get_callbacks(),
             validation_split=0.0,
-            validation_data=(validation_data, validation_data),
+            validation_data=validation_data,
             shuffle=self._training_config.get("shuffle"),
             class_weight=None,
             sample_weight=None,
             initial_epoch=self._training_config.get("initial_epoch"),
-            steps_per_epoch=self._training_config.get("steps_per_epoch"),
             validation_steps=self._training_config.get("validation_steps"),
             validation_batch_size=self._training_config.get("validation_batch_size"),
             validation_freq=self._training_config.get("validation_freq"),
@@ -79,7 +79,7 @@ class Trainer(object):
 
         training_callbacks = []
 
-        checkpoint_config = utilities.config.load_configuration_section(ConfigSections.CHECKPOINTS)
+        checkpoint_config = config.load_configuration_section(ConfigSections.CHECKPOINTS)
         if checkpoint_config.get("enabled"):
             checkpoint_cb = callbacks.ModelCheckpoint(
                 filepath=Paths.TRAIN_CHECK_DIR / checkpoint_config.get("checkpoint_filename"),
@@ -94,7 +94,7 @@ class Trainer(object):
             )
             training_callbacks.append(checkpoint_cb)
 
-        backup_config = utilities.config.load_configuration_section(ConfigSections.BACKUP)
+        backup_config = config.load_configuration_section(ConfigSections.BACKUP)
         if backup_config.get("enabled"):
             backup_cb = callbacks.BackupAndRestore(
                 backup_dir=Paths.TRAIN_BACKUP_DIR,
@@ -104,10 +104,10 @@ class Trainer(object):
             )
             training_callbacks.append(backup_cb)
 
-        tensorboard_config = utilities.config.load_configuration_section(ConfigSections.TENSORBOARD)
+        tensorboard_config = config.load_configuration_section(ConfigSections.TENSORBOARD)
         if tensorboard_config.get("enabled"):
             tensorboard_cb = callbacks.TensorBoard(
-                log_dir=Paths.TRAIN_LOG_DIR,
+                log_dir=Paths.LOG_DIR,
                 histogram_freq=tensorboard_config.get("histogram_freq"),
                 write_graph=tensorboard_config.get("write_graph"),
                 write_images=tensorboard_config.get("write_images"),
@@ -119,7 +119,7 @@ class Trainer(object):
             )
             training_callbacks.append(tensorboard_cb)
 
-        early_stopping_config = utilities.config.load_configuration_section(ConfigSections.EARLY_STOPPING)
+        early_stopping_config = config.load_configuration_section(ConfigSections.EARLY_STOPPING)
         if early_stopping_config.get("enabled"):
             early_stopping_cb = callbacks.EarlyStopping(
                 monitor=early_stopping_config.get("monitor"),

@@ -37,7 +37,6 @@ TRAIN_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.
 VALIDATION_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-validation.tfrecord
 BATCH_SIZE = 64
 EPOCHS = 20
-STEPS_PER_EPOCH =
 INITIAL_EPOCH = 0
 LEARNING_RATE = 0.001
 DECAY_RATE = 0.9999

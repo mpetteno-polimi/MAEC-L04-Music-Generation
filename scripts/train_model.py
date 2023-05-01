@@ -1,6 +1,5 @@
 
 from definitions import ConfigSections
-from modules import utilities
 from modules.data.augmentation.noteseq import NoteSequenceAugmenter
 from modules.data.converters.pianoroll import PianoRollConverter
 from modules.data.loaders.tfrecord import TFRecordLoader
@@ -9,10 +8,11 @@ from modules.model.decoder import HierarchicalDecoder
 from modules.model.encoder import BidirectionalLstmEncoder
 from modules.model.maec_vae import MaecVAE
 from modules.training.trainer import Trainer
+from modules.utilities import config
 
 if __name__ == "__main__":
-    representation_config = utilities.config.load_configuration_section(ConfigSections.REPRESENTATION)
-    training_config = utilities.config.load_configuration_section(ConfigSections.TRAINING)
+    representation_config = config.load_configuration_section(ConfigSections.REPRESENTATION)
+    training_config = config.load_configuration_section(ConfigSections.TRAINING)
 
     # Load data
     train_tfrecord = training_config.get("train_examples_path")
@@ -43,14 +43,10 @@ if __name__ == "__main__":
     # sequence = next(iter(train_dataset))
 
     # Create the model
-    seq_length = data_converter.seq_length
-    frame_length = data_converter.input_depth
-    pianoroll_shape = (seq_length, frame_length)
-    ssm_shape = (seq_length, seq_length)
     vae = MaecVAE(
         encoder=BidirectionalLstmEncoder(),
-        decoder=HierarchicalDecoder(),
-        cnn=CNN(ssm_shape)
+        decoder=HierarchicalDecoder(output_depth=data_converter.output_depth),
+        cnn=CNN(input_shape=(data_converter.seq_length, data_converter.seq_length, 1))
     )
     # vae.summary()
 

@@ -5,18 +5,18 @@ from pathlib import Path
 from typing import Any
 
 from definitions import ConfigSections, Paths
-from modules import utilities
 from modules.data.converters.dataconverter import DataConverter
 from modules.data.converters.noteseq import NoteSequenceConverter
 from modules.data.plotter.dataplotter import DataPlotter
 from modules.data.plotter.midi import MidiDataPlotter
+from modules.utilities import config
 
 
 class Dataset(ABC):
     """ TODO - Class DOC """
 
     def __init__(self):
-        self._config_file = utilities.config.load_configuration_section(ConfigSections.DATASETS)
+        self._config_file = config.load_configuration_section(ConfigSections.DATASETS)
         self.dataset = None
         self._plot_data = self._config_file.get('plot_data')
 

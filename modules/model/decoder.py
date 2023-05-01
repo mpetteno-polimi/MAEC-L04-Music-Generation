@@ -1,43 +1,77 @@
 # TODO - DOC
 
+import tensorflow as tf
 from keras import layers
 from keras import backend as K
+from keras.initializers import initializers
 
 from definitions import ConfigSections
-from modules import utilities
+from modules.utilities import config, rnn
 
 
-class LstmDecoderLayer(layers.Layer):
+class InitialCellStateFromEmbeddingLayer(layers.Layer):
 
-    def __init__(self, name="lstm_decoder", return_sequences=True, return_state=True, **kwargs):
-        super(LstmDecoderLayer, self).__init__(name=name, **kwargs)
-        self._model_config = utilities.config.load_configuration_section(ConfigSections.MODEL)
-        self.decoder = utilities.model.build_stacked_rnn_layers(
-            layers_sizes=self._model_config.get("dec_rnn_size"),
-            type_="lstm",
-            return_sequences=return_sequences,
-            return_state=return_state
+    def __init__(self, layers_sizes, name="hierarchical_decoder", **kwargs):
+
+        def split(cell_states):
+            # TODO - Generic Keras backend implementation
+            return tf.split(cell_states, num_or_size_splits=flatten_state_sizes, axis=1)
+
+        def pack(cell_states):
+            return list(zip(cell_states[::2], cell_states[1::2]))
+
+        super(InitialCellStateFromEmbeddingLayer, self).__init__(name=name, **kwargs)
+        cell_state_sizes = [(int(layer_size), int(layer_size)) for layer_size in layers_sizes]
+        flatten_state_sizes = [x for cell_state_size in cell_state_sizes for x in cell_state_size]
+        self._initial_cell_states = layers.Dense(
+            units=sum(flatten_state_sizes),
+            activation='tanh',
+            use_bias=True,
+            kernel_initializer=initializers.RandomNormal(stddev=0.001),
+            name="z_to_initial_state"
         )
+        self._split_initial_cell_states = layers.Lambda(split, name='initial_state_split')
+        self._pack_initial_cell_states = layers.Lambda(pack, name='initial_state_pack')
 
     def call(self, inputs, training=False, *args, **kwargs):
-        input_, initial_states = inputs
-        output = utilities.model.call_stacked_rnn_layers(
-            inputs=input_,
-            rnn_layers=self.decoder,
-            initial_cell_states=initial_states,
-            training=training
-        )
-
-        return output
+        initial_cell_states = self._initial_cell_states(inputs, training=training)
+        split_initial_cell_states = self._split_initial_cell_states(initial_cell_states, training=training)
+        packed_initial_cell_states = self._pack_initial_cell_states(split_initial_cell_states, training=training)
+        return packed_initial_cell_states
 
 
 class HierarchicalDecoder(layers.Layer):
 
     def __init__(self, output_depth, name="hierarchical_decoder", **kwargs):
         super(HierarchicalDecoder, self).__init__(name=name, **kwargs)
-        self._model_config = utilities.config.load_configuration_section(ConfigSections.MODEL)
-        self.conductor = LstmDecoderLayer(name="conductor")
-        self.core_decoder = LstmDecoderLayer(name="core_decoder")
+        self._model_config = config.load_configuration_section(ConfigSections.MODEL)
+        self._training_config = config.load_configuration_section(ConfigSections.TRAINING)
+
+        batch_size = self._training_config.get("batch_size")
+        layers_sizes = self._model_config.get("dec_rnn_size")
+
+        # Init conductor layer
+        self.conductor_initial_input = K.zeros(shape=(batch_size, 1, 512))  # TODO - what is the second dimension?
+        self.conductor_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=layers_sizes)
+        self.conductor = rnn.build_lstm_layers(
+            layers_sizes=layers_sizes,
+            bidirectional=False,
+            return_sequences=False,
+            return_state=True,
+            name="conductor"
+        )
+
+        # Init core-decoder layer
+        self.decoder_initial_input = K.zeros(shape=(batch_size, 1, 176))  # TODO - what is the second dimension?
+        self.decoder_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=layers_sizes)
+        self.core_decoder = rnn.build_lstm_layers(
+            layers_sizes=layers_sizes,
+            bidirectional=False,
+            return_sequences=False,
+            return_state=True,
+            name="core_decoder"
+        )
+
         # TODO - Review output projection activation function
         self.output_projection = layers.Dense(
             units=output_depth,
@@ -57,33 +91,30 @@ class HierarchicalDecoder(layers.Layer):
                 return False
 
         z_ssm_embedding, pianoroll, ssm = inputs
-        batch_size = pianoroll.shape[0]
         reconstructed_pianoroll = []
         conductor_sequence_length = self._model_config.get("conductor_seq_length")
         decoder_sequence_length = self._model_config.get("decoder_seq_length")
         assert (conductor_sequence_length * decoder_sequence_length == pianoroll.shape[1])
 
-        conductor_states = utilities.model.initial_cell_states_from_embedding(
-            embedding=z_ssm_embedding,
-            layers_sizes=self._model_config.get("dec_rnn_size")
-        )
-        conductor_input = K.zeros(shape=(batch_size, 1, 512))  # TODO - what is the second dimension?
-        decoder_input = K.zeros(shape=(batch_size, 1, 176))  # TODO - what is the second dimension?
+        conductor_states = self.conductor_initial_cell_state(z_ssm_embedding, training=training)
+        decoder_input = self.decoder_initial_input
         for i in range(conductor_sequence_length):
-            conductor_inputs = conductor_input, conductor_states
-            cond_emb_output, conductor_initial_states = self.conductor(conductor_inputs, training)
-            decoder_states = utilities.model.initial_cell_states_from_embedding(
-                embedding=cond_emb_output,
-                layers_sizes=self._model_config.get("dec_rnn_size")
-            )
+            cond_emb_output, *conductor_states = self.conductor(self.conductor_initial_input,
+                                                                initial_state=conductor_states,
+                                                                training=training)
+            decoder_states = self.decoder_initial_cell_state(cond_emb_output, training=training)
+            # Expand conductor embedding dims to allow for concatenation with the decoder input
+            cond_emb_output = K.expand_dims(cond_emb_output, axis=1)
             for j in range(decoder_sequence_length):
-                decoder_input = layers.Concatenate((decoder_input, cond_emb_output), axis=-1)
-                decoder_inputs = decoder_input, decoder_states
-                dec_emb_output, decoder_states = self.core_decoder(decoder_inputs, training)
+                decoder_input = K.concatenate(tensors=[decoder_input, cond_emb_output], axis=-1)
+                dec_emb_output, *decoder_states = self.core_decoder(decoder_input,
+                                                                    initial_state=decoder_states,
+                                                                    training=training)
                 if _is_teacher_forcing_enabled():
                     note_emb_out = pianoroll[:, i * decoder_sequence_length + j, :]
                 else:
-                    note_emb_out = self.output_projection(dec_emb_output, training)
-                reconstructed_pianoroll.append(note_emb_out)
+                    note_emb_out = self.output_projection(dec_emb_output, training=training)
+                decoder_input = K.expand_dims(note_emb_out, axis=1)
+                reconstructed_pianoroll.append(note_emb_out[:, None, :])
 
-        return reconstructed_pianoroll
+        return K.concatenate(reconstructed_pianoroll, axis=1)

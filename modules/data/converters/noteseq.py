@@ -7,7 +7,7 @@ import note_seq
 from note_seq import abc_parser
 
 from modules.data.converters.dataconverter import DataConverter
-from modules.utilities.data import generate_note_sequence_id
+from modules.utilities import data
 
 
 class NoteSequenceConverter(DataConverter):
@@ -71,7 +71,7 @@ class NoteSequenceConverter(DataConverter):
         sequence = converter_fn(full_file_path)
         sequence.collection_name = self.collection_name
         sequence.filename = file
-        sequence.id = generate_note_sequence_id(sequence.filename, sequence.collection_name, source_type)
+        sequence.id = data.generate_note_sequence_id(sequence.filename, sequence.collection_name, source_type)
         return [sequence]
 
     def _convert_abc(self, file: str) -> [note_seq.NoteSequence]:
@@ -98,7 +98,7 @@ class NoteSequenceConverter(DataConverter):
         for idx, tune in tunes.items():
             tune.collection_name = self.collection_name
             tune.filename = file
-            tune.id = generate_note_sequence_id('{}_{}'.format(tune.filename, idx), tune.collection_name, 'abc')
+            tune.id = data.generate_note_sequence_id('{}_{}'.format(tune.filename, idx), tune.collection_name, 'abc')
             sequences.append(tune)
             tf.compat.v1.logging.info('Converted ABC file %s.', file)
         return sequences
