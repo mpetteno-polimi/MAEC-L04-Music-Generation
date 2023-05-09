@@ -7,10 +7,10 @@ import numpy as np
 
 def normalize_tensor01(tensor):
     # TODO: DOC
-    min = K.min(tensor)
-    max = K.max(tensor)
-    tensor1 = tensor - min
-    tensor2 = max - min
+    minimum = K.min(tensor)
+    maximum = K.max(tensor)
+    tensor1 = tensor - minimum
+    tensor2 = maximum - minimum
 
     return layers.Lambda(lambda x: x[0] / x[1])([tensor1, tensor2])
 
@@ -64,7 +64,6 @@ class SSMLayer(layers.Layer):
               :param input1: first array for similarity
               :param input2: second array for similarity
             """
-
             distance = np.zeros((input1.shape[0], input2.shape[1]), dtype=np.float32)
 
             for i in range(input1.shape[0]):
@@ -78,7 +77,7 @@ class SSMLayer(layers.Layer):
                                   shape=(input1.shape[0], input2.shape[1]))
             return distance
 
-        def p_norm_similarity_func(input1, input2):
+        def lp_norm_similarity_func(input1, input2):
             """
             Computes similarity matrix between bidimensional tensors using minkowsy distance metric (LP norm).
             Power is determined by compute_ssm() parameters p.
@@ -86,14 +85,15 @@ class SSMLayer(layers.Layer):
               :param input1: first array for similarity
               :param input2: second array for similarity
             """
-            assert p is int
+            # assert p is int
             distance = np.zeros((input1.shape[0], input2.shape[1]), dtype=np.float32)
-
             for i in range(input1.shape[0]):
                 # each row is compared with each column
                 for j in range(input2.shape[1]):
                     diff = input1[i, :] - input2[:, j]
-                    distance[i][j] = K.sum(K.pow(K.abs(diff), p), keepdims=False)
+                    absolute = K.abs(diff)
+                    power = K.pow(absolute, self.p)
+                    distance[i][j] = K.sum(power, keepdims=False)
 
             distance = K.constant(distance,
                                   dtype="float32",
@@ -118,13 +118,13 @@ class SSMLayer(layers.Layer):
             dist_matrix = manhattan_similarity_func(input_tensor_t, input_tensor)
 
         elif self.metric == 'root' or self.metric == 'minkowsky_sqrt' or self.metric == 'sqrt':
-            dist_matrix = minkowsky_sqrt_similarity_func(input_tensor, input_tensor_t)
+            dist_matrix = minkowsky_sqrt_similarity_func(input_tensor_t, input_tensor)
 
-        elif self.metric == 'intMinkowsky' or self.metric == 'lpIntNorm':
-            dist_matrix = p_norm_similarity_func(input_tensor, input_tensor_t)
+        elif self.metric == 'int_minkowsky' or self.metric == 'lp_int_norm':
+            dist_matrix = lp_norm_similarity_func(input_tensor_t, input_tensor)
 
-        elif self.metric == 'dot' or self.metric == 'multiplication' or self.metric == 'dotNorm':
-            dist_matrix = prod_similarity_func(input_tensor, input_tensor_t)
+        elif self.metric == 'dot' or self.metric == 'multiplication' or self.metric == 'dot_norm':
+            dist_matrix = prod_similarity_func(input_tensor_t, input_tensor)
 
         else:
             print('ERROR: metric: [', self.metric, '] not recongnised')
@@ -134,16 +134,20 @@ class SSMLayer(layers.Layer):
         ssm = 1 - dist_matrix_norm
         return ssm
 
-    def __init__(self, metric='manhattan', p=0.5):
+    def __init__(self, metric, p=2):
         # TODO: doc
         super(SSMLayer, self).__init__()
         self.metric = metric.lower()
+        self.p = p
 
     def call(self, inputs, *args, **kwargs):
         # TODO: doc
         ssm = self.compute_ssm(inputs)
         return ssm
+
+
 # ======================== Equivalent np array operations =========================
+
 
 def compute_matrix_ssm(piano_roll_input, metric='manhattan', p=0.5):
     """
