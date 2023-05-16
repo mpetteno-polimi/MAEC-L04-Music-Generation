@@ -38,7 +38,7 @@ class BidirectionalLstmEncoder(keras.Model):
 
         self.dense_log_var = layers.Dense(
             units=z_size,
-            activation="softplus",
+            activation=None,
             use_bias=True,
             kernel_initializer=initializers.RandomNormal(stddev=0.001),
             bias_initializer="zeros",
