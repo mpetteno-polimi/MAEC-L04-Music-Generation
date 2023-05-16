@@ -23,6 +23,14 @@ class CNN(layers.Layer):
                 weights=None,
                 pooling="avg"
             )
+        elif cnn_id == 'mobilenet_v2':
+            self._model = applications.MobileNetV2(
+                input_shape=input_shape,
+                alpha=self._model_config.get("cnn_alpha"),
+                include_top=False,
+                weights=None,
+                pooling="avg"
+            )
         else:
             raise ValueError("CNN configuration {} not supported".format(cnn_id))
 
