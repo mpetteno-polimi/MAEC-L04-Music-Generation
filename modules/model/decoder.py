@@ -47,14 +47,13 @@ class HierarchicalDecoder(layers.Layer):
         self._model_config = config.load_configuration_section(ConfigSections.MODEL)
         self._training_config = config.load_configuration_section(ConfigSections.TRAINING)
 
-        batch_size = self._training_config.get("batch_size")
-        layers_sizes = self._model_config.get("dec_rnn_size")
+        self._batch_size = self._training_config.get("batch_size")
+        self._layers_sizes = self._model_config.get("dec_rnn_size")
 
         # Init conductor layer
-        self.conductor_initial_input = K.zeros(shape=(batch_size, 1, 512))  # TODO - what is the second dimension?
-        self.conductor_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=layers_sizes)
+        self.conductor_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=self._layers_sizes)
         self.conductor = rnn.build_lstm_layers(
-            layers_sizes=layers_sizes,
+            layers_sizes=self._layers_sizes,
             bidirectional=False,
             return_sequences=False,
             return_state=True,
@@ -62,20 +61,18 @@ class HierarchicalDecoder(layers.Layer):
         )
 
         # Init core-decoder layer
-        self.decoder_initial_input = K.zeros(shape=(batch_size, 1, 176))  # TODO - what is the second dimension?
-        self.decoder_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=layers_sizes)
+        self.decoder_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=self._layers_sizes)
         self.core_decoder = rnn.build_lstm_layers(
-            layers_sizes=layers_sizes,
+            layers_sizes=self._layers_sizes,
             bidirectional=False,
             return_sequences=False,
             return_state=True,
             name="core_decoder"
         )
 
-        # TODO - Review output projection activation function
         self.output_projection = layers.Dense(
             units=output_depth,
-            activation="softmax",
+            activation="sigmoid",
             use_bias=True,
             kernel_initializer="glorot_uniform",
             bias_initializer="zeros",
@@ -96,10 +93,11 @@ class HierarchicalDecoder(layers.Layer):
         decoder_sequence_length = self._model_config.get("decoder_seq_length")
         assert (conductor_sequence_length * decoder_sequence_length == pianoroll.shape[1])
 
+        conductor_initial_input = K.zeros(shape=(self._batch_size, 1, self._layers_sizes[0]))
         conductor_states = self.conductor_initial_cell_state(z_ssm_embedding, training=training)
-        decoder_input = self.decoder_initial_input
+        decoder_input = K.zeros(shape=(self._batch_size, 1, pianoroll.shape[2]))
         for i in range(conductor_sequence_length):
-            cond_emb_output, *conductor_states = self.conductor(self.conductor_initial_input,
+            cond_emb_output, *conductor_states = self.conductor(conductor_initial_input,
                                                                 initial_state=conductor_states,
                                                                 training=training)
             decoder_states = self.decoder_initial_cell_state(cond_emb_output, training=training)
