@@ -36,11 +36,9 @@ class MaecVAE(keras.Model):
         ssm = inputs
         z_size = self._model_config.get("z_size")
         ssm_embedding = self.cnn(ssm, training=False)
-        # TODO - Do we need to do re-parametrization trick here as well?
         z_sample = K.random_normal(shape=z_size, mean=0.0, stddev=1.0)
         decoder_input = self.concatenation_layer((z_sample, ssm_embedding))
         return self._decoder.decode(decoder_input, training=False)
 
     def loss_fn(self):
-        # TODO - Reconstruction loss computation check
         return losses.MeanSquaredError(reduction="auto", name="mean_squared_error")
