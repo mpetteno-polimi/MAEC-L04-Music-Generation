@@ -1,37 +1,96 @@
+[Representation]
+PIANO_MIN_MIDI_PITCH = 21
+PIANO_MAX_MIDI_PITCH = 108
+QUARTERS_PER_BAR = 4
+STEPS_PER_QUARTER = 4
+SLICE_BARS = 16
+MAX_STEP_DISCARD =
+MAX_BARS =
+TRANSPOSITION_MIN = -5
+TRANSPOSITION_MAX = 5
+
 [Datasets]
 MAESTRO_VERSION = 3.0.0
 MAESTRO_URL = https://storage.googleapis.com/magentadata/datasets/maestro
 MAESTRO_MIDI_ONLY = True
 PLOT_DATA = False
 
-[DataPreProcess]
-INPUT_TFRECORD = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
-OUTPUT_TFRECORD = ./resources/datasets/records/processed/maestro-v3.0.0-hierdec-pr_16bar.tfrecord
-OUTPUT_SHARDS = 2
-CONFIG = hierdec-pr_16bar
-ENABLE_FILTERING = False
-MAX_TOTAL_TIME = 1800
-MAX_NUM_NOTES = 10000
-MIN_VELOCITIES = 1
-MIN_METRIC_POSITIONS = 1
-IS_DRUM =
-DRUMS_ONLY =
-PIPELINE_OPTIONS = --runner=DirectRunner
+[Model]
+Z_SIZE = 512
+ENC_RNN_SIZE = [2048, 2048]
+DEC_RNN_SIZE = [1024, 1024]
+CONDUCTOR_SEQ_LENGTH = 16
+DECODER_SEQ_LENGTH = 16
+DROPOUT = 0
+CNN_ID = 'mobilenet_v2'
+CNN_ALPHA = 1.0
+CNN_DEPTH_MULTIPLIER = 1
+CNN_DROPOUT = 0.001
+FREE_BITS = 0
+MAX_BETA = 1e-4
+BETA_RATE = 0.0
+TEACHER_FORCING = True
+TEACHER_FORCING_PROB = 0.5
+SSM_FUNCTION = 'cosine'
 
-[Trainer]
-MASTER =
-EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
-TFDS_NAME =
-RUN_DIR = ./resources
-NUM_STEPS = 2000
-EVAL_NUM_BATCHES =
-CHECKPOINTS_TO_KEEP = 100
-KEEP_CHECKPOINT_EVERY_N_HOURS = 1
-MODE = train
-CONFIG = hierdec-pr_16bar
+[Training]
+TRAIN_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
+VALIDATION_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-validation.tfrecord
+BATCH_SIZE = 32
+EPOCHS = 5
+INITIAL_EPOCH = 0
+LEARNING_RATE = 0.001
+DECAY_RATE = 0.9999
+MIN_LEARNING_RATE = 0.00001
+CLIP_NORM = None
+CLIP_VALUE = None
+GLOBAL_CLIP_NORM = None
+STEPS_PER_EXECUTION = 1
+RUN_EAGERLY = True
+JIT_COMPILE = False
+MAX_QUEUE_SIZE = 10
+WORKERS = 1
+USE_MULTIPROCESSING = False
+VALIDATION_STEPS =
+VALIDATION_BATCH_SIZE = 1
+VALIDATION_FREQ =
 CACHE_DATASET = True
-TASK = 0
-NUM_PS_TASKS = 0
-NUM_SYNC_WORKERS = 0
-EVAL_DIR_SUFFIX = ''
-LOG = INFO
+VERBOSE = auto
+
+[Checkpoints]
+ENABLED = True
+CHECKPOINT_FILENAME = weights.{epoch:02d}-{val_loss:.2f}.hdf5
+MONITOR_METRIC = val_loss
+VERBOSE = 1
+SAVE_BEST_ONLY = True
+SAVE_WEIGHTS_ONLY = True
+MODE = auto
+SAVE_FREQ = epoch
+INITIAL_VALUE_THRESHOLD =
+
+[Backup]
+ENABLED = False
+SAVE_FREQ = epoch
+DELETE_CHECKPOINT = True
+SAVE_BEFORE_PREEMPTION = False
+
+[Tensorboard]
+ENABLED = True
+HISTOGRAM_FREQ = 0
+WRITE_GRAPH = True
+WRITE_IMAGES = False
+WRITE_STEPS_PER_SECOND = False
+UPDATE_FREQ = "epoch"
+PROFILE_BATCH = 0
+EMBEDDINGS_FREQ = 0
+
+[EarlyStopping]
+ENABLED = False
+MONITOR = val_loss
+MIN_DELTA = 0
+PATIENCE = 0
+VERBOSE = 0
+MODE = "auto"
+BASELINE =
+RESTORE_BEST_WEIGHTS = False
+START_FROM_EPOCH = 0

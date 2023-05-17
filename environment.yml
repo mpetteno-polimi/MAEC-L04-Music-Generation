@@ -1,11 +1,11 @@
 name: maec-project
 channels:
   - defaults
-  - conda-forge
-  - auto
 dependencies:
-  - python=3.7
+  - python=3.9
+  - conda-forge::cudatoolkit==11.8.0
   - pip:
-    - jupyter==1.0.0
-    - magenta==2.1.4
+    - tensorflow==2.12.*
+    - nvidia-cudnn-cu11==8.6.0.163
+    - note-seq==0.0.5
     - visual_midi==1.1.0

@@ -13,7 +13,7 @@ Repository for Music and Acoustics Engineering Capstone 2022/23 Course
 4. Create a new PyCharm project from this GIT repository.
     - From PyCharm's Welcome Screen &rarr; Get from VCS &rarr; Paste the link to this repository
 5. Create the environment from the `environment.yml` file:
-   - `conda env create --prefix ./venv --file environment.yml`
+   - `. ./setup-environment.sh`
 6. Activate the new environment:
    - `conda activate ./venv`
 7. Configure the new environment as Python interpreter in PyCharm:

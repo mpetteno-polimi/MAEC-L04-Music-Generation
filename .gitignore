@@ -22,8 +22,11 @@ config/config.ini
 *.mp3
 *.ogg
 *.flac
+*.local
 
 resources/sctk/
 /notebooks/.ipynb_checkpoints/
 
 resources/
+
+condaenv.*.txt

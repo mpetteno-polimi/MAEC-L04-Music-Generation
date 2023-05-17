@@ -10,9 +10,14 @@ from pathlib import Path
 class ConfigSections:
     """ Constants that indicate the sections present in the main configuration file. """
 
+    REPRESENTATION = 'Representation'
     DATASETS = 'Datasets'
-    DATA_PRE_PROCESS = 'DataPreProcess'
-    TRAINER = 'Trainer'
+    MODEL = 'Model'
+    TRAINING = 'Training'
+    CHECKPOINTS = 'Checkpoints'
+    EARLY_STOPPING = 'EarlyStopping'
+    BACKUP = 'Backup'
+    TENSORBOARD = 'Tensorboard'
 
 
 class Paths:
@@ -31,4 +36,7 @@ class Paths:
     DATA_RECORDS_DIR = DATA_DIR / 'records'
     DATA_PLOTS_DIR = DATA_DIR / 'plots'
     DATA_NOTESEQ_RECORDS_DIR = DATA_RECORDS_DIR / 'noteseq'
-
+    TRAIN_DIR = RESOURCES_DIR / "train"
+    TRAIN_CHECK_DIR = TRAIN_DIR / "checkpoints"
+    TRAIN_BACKUP_DIR = TRAIN_DIR / "backup"
+    LOG_DIR = RESOURCES_DIR / "logs"
