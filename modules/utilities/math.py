@@ -20,20 +20,41 @@ def l2_norm(x, axis=None):
     return norm
 
 
-def pairwise_cosine_sim(tensors):
+def cosine_similarity(tensor_a, tensor_b):
     """
     A [batch x n x d] tensor of n rows with d dimensions
-    B [batch x m x d] tensor of n rows with d dimensions
+    B [batch x d x m] tensor of n rows with d dimensions
 
     returns:
     D [batch x n x m] tensor of cosine similarity scores between each point i<n, j<m
     """
 
-    tensor_a, tensor_b = tensors
     a_l2_norm = l2_norm(tensor_a, axis=2)
-    b_l2_norm = l2_norm(tensor_b, axis=2)
-    num = K.batch_dot(tensor_a, K.permute_dimensions(tensor_b, (0, 2, 1)))
-    den = (a_l2_norm * K.permute_dimensions(b_l2_norm, (0, 2, 1)))
-    dist_mat = num / den
+    b_l2_norm = l2_norm(tensor_b, axis=1)
+    cosine_sim = K.batch_dot(tensor_a, tensor_b) / (a_l2_norm * b_l2_norm)
 
-    return dist_mat
+    return cosine_sim
+
+
+def dot_similarity(tensor_a, tensor_b):
+    """
+    Computes dot similarity between two input matrices
+
+    Parameters:
+      :param tensor_a: first array for similarity
+      :param tensor_b: second array for similarity
+    """
+
+    return K.batch_dot(tensor_a, K.permute_dimensions(tensor_b, (0, 2, 1)))
+
+
+def minkowsky_distance(tensor_a, tensor_b, p):
+    """
+    Computes similarity matrix between bidimensional tensors using sqrt distance.
+
+    Parameters:
+      :param tensor_a: first array for similarity
+      :param tensor_b: second array for similarity
+    """
+
+    return K.pow(K.sum(K.pow(K.abs(tensor_a-tensor_b), p), axis=-1, keepdims=True), 1/p)

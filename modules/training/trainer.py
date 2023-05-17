@@ -2,7 +2,7 @@
 
 import keras
 import tensorflow as tf
-from keras import callbacks
+from keras import callbacks, losses
 from keras import backend as K
 
 from definitions import ConfigSections, Paths
@@ -38,7 +38,7 @@ class Trainer(object):
     def _compile_model(self):
         self._model.compile(
             optimizer=self.optimizer,
-            loss=self._model.loss_fn(),
+            loss=losses.MeanSquaredError(reduction="auto", name="mean_squared_error"),
             metrics=['accuracy'],
             loss_weights=None,
             weighted_metrics=None,

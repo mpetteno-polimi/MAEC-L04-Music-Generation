@@ -31,6 +31,7 @@ MAX_BETA = 1e-4
 BETA_RATE = 0.0
 TEACHER_FORCING = True
 TEACHER_FORCING_PROB = 0.5
+SSM_FUNCTION = 'cosine'
 
 [Training]
 TRAIN_EXAMPLES_PATH = ./resources/datasets/records/noteseq/maestro-v3.0.0-train.tfrecord
