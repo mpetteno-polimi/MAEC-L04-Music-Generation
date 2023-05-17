@@ -2,59 +2,105 @@
 from keras import backend as K
 
 
-def sampling(mu_log_variance):
+def reparametrization_trick(mu_log_variance):
     mu, log_variance = mu_log_variance
     epsilon = K.random_normal(shape=K.shape(mu), mean=0.0, stddev=1.0)
     random_sample = mu + K.exp(log_variance / 2) * epsilon
     return random_sample
 
 
-def l2_norm(x, axis=None):
+def minkowski_distance(x1, x2, p):
     """
-    Takes an input tensor and returns the l2 norm along specified axis
-    """
+    Computes the Minkowski distance between two tensors of the same shape.
 
-    square_sum = K.sum(K.square(x), axis=axis, keepdims=True)
-    norm = K.sqrt(K.maximum(square_sum, K.epsilon()))
+    Arguments:
+    x1 -- First tensor, shape (batch_size, n, d)
+    x2 -- Second tensor, shape (batch_size, m, d)
+    p -- Parameter for the Minkowski distance.
 
-    return norm
-
-
-def cosine_similarity(tensor_a, tensor_b):
-    """
-    A [batch x n x d] tensor of n rows with d dimensions
-    B [batch x d x m] tensor of n rows with d dimensions
-
-    returns:
-    D [batch x n x m] tensor of cosine similarity scores between each point i<n, j<m
+    Returns:
+    distances -- Pairwise distances, shape (batch_size, n, m)
     """
 
-    a_l2_norm = l2_norm(tensor_a, axis=2)
-    b_l2_norm = l2_norm(tensor_b, axis=1)
-    cosine_sim = K.batch_dot(tensor_a, tensor_b) / (a_l2_norm * b_l2_norm)
-
-    return cosine_sim
+    diff = K.abs(x1 - x2)
+    distances = K.pow(K.sum(K.pow(diff, p), axis=-1), 1.0 / p)
+    return distances
 
 
-def dot_similarity(tensor_a, tensor_b):
+def dot_product_distance(x1, x2):
     """
-    Computes dot similarity between two input matrices
+    Computes the dot product distance between two tensors of the same shape.
 
-    Parameters:
-      :param tensor_a: first array for similarity
-      :param tensor_b: second array for similarity
+    Arguments:
+    x1 -- First tensor, shape (batch_size, n, d)
+    x2 -- Second tensor, shape (batch_size, m, d)
+
+    Returns:
+    distances -- Pairwise distances, shape (batch_size, n, m)
     """
+    dot_product = K.batch_dot(x1, K.permute_dimensions(x2, (0, 2, 1)))
+    distances = 1.0 - dot_product
+    return distances
 
-    return K.batch_dot(tensor_a, K.permute_dimensions(tensor_b, (0, 2, 1)))
 
-
-def minkowsky_distance(tensor_a, tensor_b, p):
+def cosine_distance(x1, x2):
     """
-    Computes similarity matrix between bidimensional tensors using sqrt distance.
+    Computes the cosine distance between two tensors of the same shape.
 
-    Parameters:
-      :param tensor_a: first array for similarity
-      :param tensor_b: second array for similarity
+    Arguments:
+    x1 -- First tensor, shape (batch_size, n, d)
+    x2 -- Second tensor, shape (batch_size, m, d)
+
+    Returns:
+    distances -- Pairwise distances, shape (batch_size, n, m)
     """
+    x1_norm = K.l2_normalize(x1, axis=-1)
+    x2_norm = K.l2_normalize(x2, axis=-1)
+    distances = dot_product_distance(x1_norm, x2_norm)
+    return distances
 
-    return K.pow(K.sum(K.pow(K.abs(tensor_a-tensor_b), p), axis=-1, keepdims=True), 1/p)
+
+def sqrt_euclidean_distance(x1, x2):
+    """
+    Computes the square root Euclidean distance between two tensors of the same shape.
+
+    Arguments:
+    x1 -- First tensor, shape (batch_size, n, d)
+    x2 -- Second tensor, shape (batch_size, m, d)
+
+    Returns:
+    distances -- Pairwise distances, shape (batch_size, n, m)
+    """
+    squared_diff = K.square(x1 - x2)
+    sum_squared_diff = K.sum(squared_diff, axis=-1)
+    distances = K.sqrt(sum_squared_diff)
+    return distances
+
+
+def pairwise_distance(x1, x2, metric='euclidean'):
+    """
+    Computes pairwise distances between two tensors of the same shape.
+
+    Arguments:
+    x1 -- First tensor, shape (batch_size, n, d)
+    x2 -- Second tensor, shape (batch_size, m, d)
+    metric -- Distance metric to use (default: 'euclidean')
+
+    Returns:
+    distances -- Pairwise distances, shape (batch_size, n, m)
+    """
+    if metric == 'euclidean':
+        distances = minkowski_distance(x1, x2, p=2)
+    elif metric == 'manhattan':
+        distances = minkowski_distance(x1, x2, p=1)
+    elif metric == 'cosine':
+        distances = cosine_distance(x1, x2)
+    elif metric == 'sqrt_euclidean':
+        distances = sqrt_euclidean_distance(x1, x2)
+    elif metric == 'dot_product':
+        distances = dot_product_distance(x1, x2)
+    else:
+        raise ValueError('Metric {} not supported. Available options: euclidean, cosine, manhattan, '
+                         'sqrt_euclidean, dot_product'.format(metric))
+
+    return distances

@@ -45,7 +45,7 @@ class BidirectionalLstmEncoder(keras.Model):
             name="z_log_var"
         )
 
-        self.sampling = layers.Lambda(math.sampling, name="z")
+        self.sampling = layers.Lambda(math.reparametrization_trick, name="z")
 
     def call(self, inputs, training=None, **kwargs):
         encoder_output = self.bidirectional_lstm_layers(inputs)
