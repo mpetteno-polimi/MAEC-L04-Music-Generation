@@ -6,7 +6,6 @@ from keras import backend as K
 
 from definitions import ConfigSections
 from modules.model.kl_divergence import KLDivergenceLayer
-from modules.model.ssm import SSMLayer
 from modules.utilities import config, math
 
 
