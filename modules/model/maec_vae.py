@@ -6,6 +6,7 @@ from keras import backend as K
 
 from definitions import ConfigSections
 from modules.model.kl_divergence import KLDivergenceLayer
+from modules.model.ssm import SSMLayer
 from modules.utilities import config, math
 
 
@@ -17,15 +18,13 @@ class MaecVAE(keras.Model):
         self.encoder = encoder
         self.decoder = decoder
         self.cnn = cnn
-        self._ssm_layer = layers.Lambda(math.pairwise_distance)
+        self._ssm_layer = SSMLayer(self._model_config.get("ssm_function"))
         self._concatenation_layer = layers.Concatenate(axis=-1, name="z_concat")
         self._kl_divergence_layer = KLDivergenceLayer()
 
     def call(self, inputs, training=None, mask=None):
         pianoroll = inputs
-        # TODO - Is it better to use similarity or dissimilarity elements in the SSM?
-        # TODO - Which function is better for computing SSM?
-        ssm = self._ssm_layer(pianoroll, pianoroll, self._model_config.get("ssm_function"))
+        ssm = self._ssm_layer(pianoroll, training=training, mask=mask)
         z_mean, z_log_var, z = self.encoder(pianoroll, training=training, mask=mask)
         _ = self._kl_divergence_layer((z_mean, z_log_var, self.optimizer.iterations))
         ssm_embedding = self.cnn(ssm, training=training, mask=mask)
