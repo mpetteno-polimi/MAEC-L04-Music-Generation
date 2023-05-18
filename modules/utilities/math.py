@@ -22,7 +22,11 @@ def minkowski_distance(x1, x2, p):
     distances -- Pairwise distances, shape (batch_size, n, m)
     """
 
-    diff = K.abs(x1 - x2)
+    # Expand dimensions to enable broadcasting
+    x1_expand = K.expand_dims(x1, axis=2)
+    x2_expand = K.expand_dims(x2, axis=1)
+
+    diff = K.abs(x1_expand - x2_expand)
     distances = K.pow(K.sum(K.pow(diff, p), axis=-1), 1.0 / p)
     return distances
 
@@ -38,7 +42,9 @@ def dot_product_distance(x1, x2):
     Returns:
     distances -- Pairwise distances, shape (batch_size, n, m)
     """
-    dot_product = K.batch_dot(x1, K.permute_dimensions(x2, (0, 2, 1)))
+
+    x2_transposed = K.permute_dimensions(x2, (0, 2, 1))
+    dot_product = K.batch_dot(x1, x2_transposed)
     distances = 1.0 - dot_product
     return distances
 
@@ -54,6 +60,7 @@ def cosine_distance(x1, x2):
     Returns:
     distances -- Pairwise distances, shape (batch_size, n, m)
     """
+
     x1_norm = K.l2_normalize(x1, axis=-1)
     x2_norm = K.l2_normalize(x2, axis=-1)
     distances = dot_product_distance(x1_norm, x2_norm)
@@ -71,7 +78,12 @@ def sqrt_euclidean_distance(x1, x2):
     Returns:
     distances -- Pairwise distances, shape (batch_size, n, m)
     """
-    squared_diff = K.square(x1 - x2)
+
+    # Expand dimensions to enable broadcasting
+    x1_expand = K.expand_dims(x1, axis=2)
+    x2_expand = K.expand_dims(x2, axis=1)
+
+    squared_diff = K.square(x1_expand - x2_expand)
     sum_squared_diff = K.sum(squared_diff, axis=-1)
     distances = K.sqrt(sum_squared_diff)
     return distances
@@ -89,6 +101,7 @@ def pairwise_distance(x1, x2, metric='euclidean'):
     Returns:
     distances -- Pairwise distances, shape (batch_size, n, m)
     """
+
     if metric == 'euclidean':
         distances = minkowski_distance(x1, x2, p=2)
     elif metric == 'manhattan':
