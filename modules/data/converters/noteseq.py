@@ -26,7 +26,7 @@ class NoteSequenceConverter(DataConverter):
         tfrecord_file_name = '{}-{}.tfrecord'.format(self.collection_name, tfrecord_file_label)
         tfrecord_file_path = self.output_path / tfrecord_file_name
         if not tfrecord_file_path.exists():
-            tf.io.gfile.mkdir(self.output_path)
+            tf.io.gfile.makedirs(self.output_path)
             with tf.io.TFRecordWriter(str(tfrecord_file_path)) as writer:
                 for idx, file in enumerate(files_to_convert):
                     try:

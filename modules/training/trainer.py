@@ -52,6 +52,7 @@ class Trainer(object):
             train_data,
             batch_size=self._training_config.get("batch_size"),
             epochs=self._training_config.get("epochs"),
+            steps_per_epoch=self._training_config.get("steps_per_epoch"),
             verbose=self._training_config.get("verbose"),
             callbacks=self._get_callbacks(),
             validation_split=0.0,

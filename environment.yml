@@ -3,6 +3,7 @@ channels:
   - defaults
 dependencies:
   - python=3.9
+  - pip=23.1.2
   - conda-forge::cudatoolkit==11.8.0
   - pip:
     - tensorflow==2.12.*
