@@ -14,6 +14,7 @@ Repository for Music and Acoustics Engineering Capstone 2022/23 Course
     - From PyCharm's Welcome Screen &rarr; Get from VCS &rarr; Paste the link to this repository
 5. Create the environment from the `environment.yml` file:
    - `. ./setup-environment.sh`
+   - Verify GPU setup with: `python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"`
 6. Activate the new environment:
    - `conda activate ./venv`
 7. Configure the new environment as Python interpreter in PyCharm:

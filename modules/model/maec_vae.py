@@ -17,19 +17,17 @@ class MaecVAE(keras.Model):
         self.encoder = encoder
         self.decoder = decoder
         self.cnn = cnn
-        self._ssm_layer = layers.Lambda(math.pairwise_distance)
+        self._ssm_layer = layers.Lambda(lambda args: math.pairwise_distance(args[0], args[0], args[1]))
         self._concatenation_layer = layers.Concatenate(axis=-1, name="z_concat")
         self._kl_divergence_layer = KLDivergenceLayer()
 
     def call(self, inputs, training=None, mask=None):
         pianoroll = inputs
-        # TODO - Is it better to use similarity or dissimilarity elements in the SSM?
-        # TODO - Which function is better for computing SSM?
-        ssm = self._ssm_layer(pianoroll, pianoroll, self._model_config.get("ssm_function"))
+        ssm = self._ssm_layer((pianoroll, self._model_config.get("ssm_function")), training=training, mask=mask)
         z_mean, z_log_var, z = self.encoder(pianoroll, training=training, mask=mask)
-        _ = self._kl_divergence_layer((z_mean, z_log_var, self.optimizer.iterations))
+        _ = self._kl_divergence_layer((z_mean, z_log_var, self.optimizer.iterations), training=training)
         ssm_embedding = self.cnn(ssm, training=training, mask=mask)
-        z_ssm_embedding = self._concatenation_layer((z, ssm_embedding))
+        z_ssm_embedding = self._concatenation_layer((z, ssm_embedding), training=training)
         reconstruction = self.decoder((z_ssm_embedding, pianoroll, ssm), training=training, mask=mask)
         return reconstruction
 
@@ -38,5 +36,5 @@ class MaecVAE(keras.Model):
         z_size = self._model_config.get("z_size")
         ssm_embedding = self.cnn(ssm, training=False)
         z_sample = K.random_normal(shape=z_size, mean=0.0, stddev=1.0)
-        decoder_input = self.concatenation_layer((z_sample, ssm_embedding))
+        decoder_input = self.concatenation_layer((z_sample, ssm_embedding), training=False)
         return self._decoder.decode(decoder_input, training=False)
