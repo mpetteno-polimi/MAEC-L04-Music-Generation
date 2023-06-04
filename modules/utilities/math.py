@@ -21,8 +21,11 @@ def minkowski_distance(x1, x2, p):
     Returns:
     distances -- Pairwise distances, shape (batch_size, n, m)
     """
+    # Expand dimensions to enable broadcasting
+    x1_expand = K.expand_dims(x1, axis=2)
+    x2_expand = K.expand_dims(x2, axis=1)
 
-    diff = K.abs(x1 - x2)
+    diff = K.abs(x1_expand - x2_expand)
     distances = K.pow(K.sum(K.pow(diff, p), axis=-1), 1.0 / p)
     return distances
 
