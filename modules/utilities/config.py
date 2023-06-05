@@ -45,5 +45,5 @@ def load_configuration_section(section_name: str) -> Mapping[str, Any]:
         try:
             file_section[option] = ast.literal_eval(option_value)
         except (SyntaxError, ValueError):
-            file_section[option] = option_value
+            file_section[option] = option_value if option_value else None
     return file_section

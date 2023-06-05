@@ -11,7 +11,7 @@ from modules.utilities import config, rnn
 
 class InitialCellStateFromEmbeddingLayer(layers.Layer):
 
-    def __init__(self, layers_sizes, name="hierarchical_decoder", **kwargs):
+    def __init__(self, layers_sizes, name="initial_cell_state", **kwargs):
 
         def split(cell_states):
             # TODO - Generic Keras backend implementation
@@ -51,7 +51,8 @@ class HierarchicalDecoder(layers.Layer):
         self._layers_sizes = self._model_config.get("dec_rnn_size")
 
         # Init conductor layer
-        self.conductor_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=self._layers_sizes)
+        self.conductor_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=self._layers_sizes,
+                                                                               name="conductor_initial_cell_state")
         self.conductor = rnn.build_lstm_layers(
             layers_sizes=self._layers_sizes,
             bidirectional=False,
@@ -61,7 +62,8 @@ class HierarchicalDecoder(layers.Layer):
         )
 
         # Init core-decoder layer
-        self.decoder_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=self._layers_sizes)
+        self.decoder_initial_cell_state = InitialCellStateFromEmbeddingLayer(layers_sizes=self._layers_sizes,
+                                                                             name="core_decoder_initial_cell_state")
         self.core_decoder = rnn.build_lstm_layers(
             layers_sizes=self._layers_sizes,
             bidirectional=False,
