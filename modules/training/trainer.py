@@ -33,7 +33,7 @@ class Trainer(object):
 
     def train(self, train_data, validation_data):
         self._compile_model()
-        self._fit_model(train_data, validation_data)
+        return self._fit_model(train_data, validation_data)
 
     def _compile_model(self):
         self._model.compile(
