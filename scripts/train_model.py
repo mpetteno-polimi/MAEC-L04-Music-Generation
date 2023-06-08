@@ -52,4 +52,4 @@ if __name__ == "__main__":
 
     # Start training
     trainer = Trainer(model=vae)
-    trainer.train(train_dataset, validation_dataset)
+    history = trainer.train(train_dataset, validation_dataset)
