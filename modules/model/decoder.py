@@ -89,12 +89,17 @@ class HierarchicalDecoder(layers.Layer):
                 return False
 
         z_ssm_embedding, pianoroll, ssm = inputs
+
+        if training:
+            batch_size = self._training_config.get('batch_size')
+        else:
+            batch_size = self._test_config.get('test_batch_size')
+
         reconstructed_pianoroll = []
         conductor_sequence_length = self._model_config.get("conductor_seq_length")
         decoder_sequence_length = self._model_config.get("decoder_seq_length")
         assert (conductor_sequence_length * decoder_sequence_length == pianoroll.shape[1])
 
-        batch_size = pianoroll.shape[0]
         conductor_initial_input = K.zeros(shape=(batch_size, 1, self._layers_sizes[0]))
         conductor_states = self.conductor_initial_cell_state(z_ssm_embedding, training=training)
         decoder_input = K.zeros(shape=(batch_size, 1, pianoroll.shape[2]))

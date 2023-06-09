@@ -14,6 +14,7 @@ class ConfigSections:
     DATASETS = 'Datasets'
     MODEL = 'Model'
     TRAINING = 'Training'
+    TEST = 'Test'
     CHECKPOINTS = 'Checkpoints'
     EARLY_STOPPING = 'EarlyStopping'
     BACKUP = 'Backup'
