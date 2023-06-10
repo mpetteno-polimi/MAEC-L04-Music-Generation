@@ -1,6 +1,5 @@
 # TODO - DOC
 # TODO: delete print
-# TODO: num generated midi files
 # todo: each note is a new note right now
 
 from keras import backend as K
@@ -21,7 +20,7 @@ class Evaluator(object):
 
         representation_config = config.load_configuration_section(ConfigSections.REPRESENTATION)
         test_config = config.load_configuration_section(ConfigSections.TEST)
-        self._n_test_files = int(test_config.get('n_test_files'))
+        self._n_test_files = int(test_config.get('n_tests'))
         self._test_batch_size = int(test_config.get('test_batch_size'))
         self._slice_bars = int(representation_config.get('slice_bars'))
         self._input_steps_len = int(representation_config.get('num_bars')) * self._slice_bars
@@ -30,8 +29,7 @@ class Evaluator(object):
         self._bpm = int(test_config.get('bpm_out'))
         self._z_samples_file_path = test_config.get('z_samples_file_path')
 
-
-    def create_midi_files(self, pianoroll_batches):
+    def create_midi_files(self, pianoroll_batches, max_outputs=None):
         # TODO : Remove commented lines when cleaning code
         # rand_t = [K.random_uniform_variable(shape=(2, 256, 176), low=0.0, high=1.0, dtype="float32"),
         #           K.random_uniform_variable(shape=(2, 256, 176), low=0.0, high=1.0, dtype="float32")]
@@ -71,10 +69,16 @@ class Evaluator(object):
                             piano_instr.notes.append(note)
 
                 midi_file.instruments.append(piano_instr)
-                print('./../resources/eval/midi_out/' + str(pr_idx+batch_idx) + '.mid')
-                midi_file.write('./../resources/eval/midi_out/' + str(pr_idx) + '.mid')
+                file_num = int(pr_idx+batch_idx)
+                if file_num >= max_outputs:
+                    return
+                print('./../resources/eval/midi_out/' + str(file_num) + '.mid')
+                midi_file.write('./../resources/eval/midi_out/' + str(file_num) + '.mid')
 
-    def evaluate(self, test_dataset):
+    def evaluate(self, test_dataset, max_outputs=None):
+        """
+        The number of created midi files is max(max_outputs, batch_size, z_samples)
+        """
         def fetch_z_sample_batches():
             # load z from file if available
             z_samples = None
@@ -104,5 +108,5 @@ class Evaluator(object):
 
         print('Done')
         # print('results:', results)
-        self.create_midi_files(pianoroll_batches=results)
+        self.create_midi_files(pianoroll_batches=results, max_outputs=max_outputs)
 

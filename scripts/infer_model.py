@@ -1,4 +1,4 @@
-# TODO: input as ssm
+# TODO: test input as ssm
 
 from definitions import ConfigSections
 from modules.data.augmentation.noteseq import NoteSequenceAugmenter
@@ -16,6 +16,7 @@ from modules.evalutation.evaluator import Evaluator
 if __name__ == "__main__":
     representation_config = config.load_configuration_section(ConfigSections.REPRESENTATION)
     test_config = config.load_configuration_section(ConfigSections.TEST)
+    max_outputs = int(test_config.get('n_tests'))
 
     # Load data
     print('loading data... ')
@@ -54,7 +55,7 @@ if __name__ == "__main__":
         cnn=CNN(input_shape=(data_converter.seq_length, data_converter.seq_length, 1))
     )
 
-    n_test_files = int(test_config.get('n_test_files'))
+    # build the model
     test_batch_size = int(test_config.get('test_batch_size'))
     input_steps_len = int(representation_config.get('num_bars')) * int(representation_config.get('slice_bars'))
     input_feature_len = 2 * (int(representation_config.get('piano_max_midi_pitch')) - int(
@@ -73,4 +74,4 @@ if __name__ == "__main__":
     # Start inference
     print('Predicting... ')
     evaluator = Evaluator(model=vae)
-    evaluator.evaluate(test_dataset=test_dataset)
+    evaluator.evaluate(test_dataset=test_dataset, max_outputs=max_outputs)
