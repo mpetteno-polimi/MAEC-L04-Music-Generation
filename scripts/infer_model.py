@@ -1,3 +1,5 @@
+# TODO: input as ssm
+
 from definitions import ConfigSections
 from modules.data.augmentation.noteseq import NoteSequenceAugmenter
 from modules.data.converters.pianoroll import PianoRollConverter
@@ -8,6 +10,7 @@ from modules.model.encoder import BidirectionalLstmEncoder
 from modules.model.maec_vae import MaecVAE
 from modules.utilities import config
 from definitions import Paths
+from modules.evalutation.evaluator import Evaluator
 
 
 if __name__ == "__main__":
@@ -15,7 +18,7 @@ if __name__ == "__main__":
     test_config = config.load_configuration_section(ConfigSections.TEST)
 
     # Load data
-    print('loading data... ', end='')
+    print('loading data... ')
     test_tfrecord = test_config.get("test_examples_path")
 
     data_converter = PianoRollConverter(
@@ -43,7 +46,7 @@ if __name__ == "__main__":
     # print('elem', elem)
     print('Done')
 
-    print('Loading model... ', end='')
+    print('Loading model... ')
     # Create the model
     vae = MaecVAE(
         encoder=BidirectionalLstmEncoder(),
@@ -58,7 +61,7 @@ if __name__ == "__main__":
         representation_config.get('piano_min_midi_pitch')) + 1)
 
     input_shape = (test_batch_size, input_steps_len, input_feature_len)
-    print('shape:', input_shape, end='... ')
+    print('shape:', input_shape)
     vae.build(input_shape)
 
     # load checkpoint weights
@@ -67,15 +70,7 @@ if __name__ == "__main__":
     print('Done')
     # vae.summary()
 
-    # data = keras.backend.random_normal(shape=(2, 256, 176), mean=0, stddev=1)
-    results = []
     # Start inference
-    print('Predicting... ', end='')
-    for idx, test_batch in enumerate(test_dataset):
-        # test_batch = keras.Input(tensor=test_batch)
-        if idx >= n_test_files:
-            break
-        results.append(vae.sample(test_batch[0], pianoroll_format=True))
-
-    print('Done')
-    print(results)
+    print('Predicting... ')
+    evaluator = Evaluator(model=vae)
+    evaluator.evaluate(test_dataset=test_dataset)

@@ -41,3 +41,5 @@ class Paths:
     TRAIN_CHECK_DIR = TRAIN_DIR / "checkpoints"
     TRAIN_BACKUP_DIR = TRAIN_DIR / "backup"
     LOG_DIR = RESOURCES_DIR / "logs"
+    EVAL_DIR = RESOURCES_DIR / "eval"
+    Z_SAMPLES_DIR_PATH = EVAL_DIR / "latent_samples"

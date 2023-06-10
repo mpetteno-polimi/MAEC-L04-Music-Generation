@@ -46,6 +46,7 @@ class HierarchicalDecoder(layers.Layer):
         super(HierarchicalDecoder, self).__init__(name=name, **kwargs)
         self._model_config = config.load_configuration_section(ConfigSections.MODEL)
         self._training_config = config.load_configuration_section(ConfigSections.TRAINING)
+        self._test_config = config.load_configuration_section(ConfigSections.TEST)
 
         self._layers_sizes = self._model_config.get("dec_rnn_size")
 
