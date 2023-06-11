@@ -36,25 +36,26 @@ class MaecVAE(keras.Model):
         reconstruction = self.decoder((z_ssm_embedding, pianoroll, ssm), training=training, mask=mask)
         return reconstruction
 
-    def sample(self, inputs, z_sample=None, pianoroll_format=False):
+    def sample(self, inputs, z_sample=None, use_pianoroll_input=False):
         """
         Inference method
         :param inputs: ssm tensor
+        :param use_pianoroll_input: if false input should be a batch of ssm tensors
+                                if true it should be a batcch of pianoroll tensors
         """
 
         z_size = self._model_config.get("z_size")
 
-        if pianoroll_format:
+        if use_pianoroll_input:
             pianoroll = inputs
             ssm = self._ssm_layer((pianoroll, self._model_config.get("ssm_function")), training=False, mask=None)
 
         else:
-            pianoroll_features_num = 2 * (
-                self._representation_config.get('piano_max_midi_pitch') - self._representation_config.get(
-                'piano_min_midi_pitch') + 1)
+            pianoroll_features_num = 2 * (int(self._representation_config.get('piano_max_midi_pitch')) - int(
+                self._representation_config.get('piano_min_midi_pitch')) + 1)
 
             ssm = inputs
-            pianoroll = K.zeros(inputs.shape[0], inputs.shape[1], pianoroll_features_num)
+            pianoroll = K.zeros(shape=(inputs.shape[0], inputs.shape[1], pianoroll_features_num))
 
         ssm_embedding = self.cnn(ssm, training=False)
         if z_sample is None:

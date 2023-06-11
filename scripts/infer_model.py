@@ -1,6 +1,12 @@
 # TODO: test input as ssm
 
+from keras.layers import Lambda
+import tensorflow as tf
+from tensorflow._api.v2.data import Dataset
+
 from definitions import ConfigSections
+from definitions import Paths
+
 from modules.data.augmentation.noteseq import NoteSequenceAugmenter
 from modules.data.converters.pianoroll import PianoRollConverter
 from modules.data.loaders.tfrecord import TFRecordLoader
@@ -9,13 +15,15 @@ from modules.model.decoder import HierarchicalDecoder
 from modules.model.encoder import BidirectionalLstmEncoder
 from modules.model.maec_vae import MaecVAE
 from modules.utilities import config
-from definitions import Paths
+from modules.utilities import math
 from modules.evalutation.evaluator import Evaluator
+
 
 
 if __name__ == "__main__":
     representation_config = config.load_configuration_section(ConfigSections.REPRESENTATION)
     test_config = config.load_configuration_section(ConfigSections.TEST)
+    model_config = config.load_configuration_section(ConfigSections.MODEL)
     max_outputs = int(test_config.get('n_tests'))
 
     # Load data
@@ -71,7 +79,21 @@ if __name__ == "__main__":
     print('Done')
     # vae.summary()
 
-    # Start inference
     print('Predicting... ')
     evaluator = Evaluator(model=vae)
-    evaluator.evaluate(test_dataset=test_dataset, max_outputs=max_outputs)
+
+    # Prepare SSMs
+    ssm_dataset = []
+    compute_ssm = Lambda(lambda args: math.pairwise_distance(args[0], args[0], args[1]))
+    for test_data in test_dataset:
+        print(test_data)
+        ssm_in = test_data[0]  # test data is a tuple of redundant data
+        ssm = compute_ssm((ssm_in, model_config.get("ssm_function")))
+        print(ssm)
+        ssm_dataset.append(ssm)
+        break
+    ssm_dataset = Dataset.from_tensor_slices(ssm_dataset, name='ssm_dataset')
+
+    # Inference
+    # evaluator.evaluate(test_dataset=test_dataset, max_outputs=max_outputs)
+    evaluator.evaluate(inputs=test_dataset, max_outputs=max_outputs, use_pianoroll_input=True)

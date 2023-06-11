@@ -11,6 +11,7 @@ import os
 from definitions import ConfigSections, Paths
 from modules.utilities import config
 
+
 class Evaluator(object):
 
     def __init__(self, model):
@@ -81,7 +82,7 @@ class Evaluator(object):
                             note_vel = note_time_steps[time_step_idx]
                             # for time_step_idx, note_vel in enumerate(note_time_steps):
                             velocity = int(math.ceil(K.eval(note_vel) * 127))
-                            print(note_idx, time_step_idx, velocity)
+                            # print(note_idx, time_step_idx, velocity)
                             time_step_idx += 1
 
                             if velocity >= self._min_velocity_threshold:
@@ -89,7 +90,6 @@ class Evaluator(object):
                                 end_time_sec = start_time_sec + tatum_seconds
                                 while time_step_idx < tf.size(note_time_steps) \
                                     and round(K.eval(pianoroll[note_idx + 1][time_step_idx])) == 1:
-
                                     time_step_idx += 1
                                     end_time_sec += tatum_seconds
 
@@ -104,15 +104,15 @@ class Evaluator(object):
                                     end=end_time_sec
                                 )
                                 piano_instr.notes.append(note)
-                                print(note)
-                                print(time_step_idx, note_idx)
+                                # print(note)
+                                # print(time_step_idx, note_idx)
 
                 midi_file.instruments.append(piano_instr)
 
                 print('./../resources/eval/midi_out/' + str(file_num) + '.mid')
                 midi_file.write('./../resources/eval/midi_out/' + str(file_num) + '.mid')
 
-    def evaluate(self, test_dataset, max_outputs=None):
+    def evaluate(self, inputs, use_pianoroll_input, max_outputs=None):
         """
         The number of created midi files is max(max_outputs, batch_size, z_samples)
         """
@@ -130,18 +130,20 @@ class Evaluator(object):
                 print('WARNING: Random inference sampling')
             return z_samples
 
+        assert inputs is not None
         z_sample_batches = fetch_z_sample_batches()
         # Start inference
         print('Predicting... ')
         results = []
-        for idx, test_batch in enumerate(test_dataset):
+        for idx, input_batch in enumerate(inputs):
             if idx >= self._n_test_files:
                 break
             z = tf.convert_to_tensor(z_sample_batches[idx * 2:(idx * 2) + 2, :])
+
             results.append(self._model.sample(
-                test_batch[0],  # test_batch is a list of 2 identical 'data sources' for testing
-                pianoroll_format=True,
-                z_sample=z
+                input_batch[0],  # test_batch is a list of 2 identical 'data sources' for testing
+                use_pianoroll_input=use_pianoroll_input,
+                z_sample=z,
             ))
 
         print('Done')
