@@ -1,6 +1,5 @@
 # TODO - DOC
 # TODO: delete print
-# todo: each note is a new note right now [fixed, needs to be tested further]
 
 from keras import backend as K
 import tensorflow as tf
@@ -11,7 +10,6 @@ import os
 
 from definitions import ConfigSections, Paths
 from modules.utilities import config
-
 
 class Evaluator(object):
 
@@ -28,6 +26,7 @@ class Evaluator(object):
             representation_config.get('piano_min_midi_pitch')) + 1)
         self._bpm = int(test_config.get('bpm_out'))
         self._z_samples_file_path = test_config.get('z_samples_file_path')
+        self._min_velocity_threshold = int(test_config.get('min_velocity_threshold'))  # 0..127 scale
 
     def create_midi_files(self, pianoroll_batches, max_outputs=None):
         # TODO : Remove commented lines when cleaning code
@@ -48,7 +47,8 @@ class Evaluator(object):
                 midi_file = pretty_midi.PrettyMIDI(initial_tempo=self._bpm)
                 piano_program = pretty_midi.instrument_name_to_program('Acoustic Grand Piano')
                 piano_instr = pretty_midi.Instrument(program=piano_program)
-
+                # NO SUSTAINED NOTES VERSION
+                # each note is a new note right now
                 # per ogni elem della serie temporale
                 # for time_idx, time_step in enumerate(pianoroll):
                 #     for note_idx, note in enumerate(time_step):
@@ -64,43 +64,51 @@ class Evaluator(object):
                 #                 velocity=velocity,
                 #                 pitch=note_midi_number,
                 #                 start=start_time_sec,
-                #                 end=end_time_sec  # todo: each note is a new note right now
+                #                 end=end_time_sec
                 #             )
                 #             piano_instr.notes.append(note)
-                # for each note add it each time it is present in the temporal series
-                for note_idx, note in enumerate(pianoroll[-1]):
-                    if note_idx % 2 == 0 and K.eval(note) != 0.0:
-                        time_step_idx = 0
-                        while time_step_idx < pianoroll.shape[0]:  # todo: clean (refactor using iterator)
-                            start_time_sec = time_step_idx * tatum_seconds
-                            end_time_sec = start_time_sec + tatum_seconds
-                            # increase length if sustained note and skip replay
-                            note_time_steps_len = int(1)
-                            for time_step in range(time_step_idx, pianoroll.shape[0]):
-                                if K.eval(pianoroll[time_step][note_idx+1]):
-                                    end_time_sec += tatum_seconds
-                                    note_time_steps_len += 1
-                            time_step_idx += note_time_steps_len
 
-                            note_midi_number = int(note_idx / 2)
-                            velocity = int(math.ceil(K.eval(note) * 127))
-                            assert 0 <= note_midi_number <= 127
-                            assert 0 <= math.ceil(K.eval(note) * 127) <= 127
-                            assert start_time_sec < end_time_sec
-                            note = pretty_midi.Note(
-                                velocity=velocity,
-                                pitch=note_midi_number,
-                                start=start_time_sec,
-                                end=end_time_sec  # todo: each note is a new note right now
-                            )
-                            piano_instr.notes.append(note)
-                            time_step_idx += 1
-
-
-                midi_file.instruments.append(piano_instr)
-                file_num = int(pr_idx+batch_idx)
+                file_num = int(pr_idx + batch_idx)
                 if file_num >= max_outputs:
                     return
+                # pianoroll note first
+                pianoroll = tf.transpose(pianoroll, perm=[1, 0])
+                # for each pianoroll note scroll all time steps and add available ones
+                for note_idx, note_time_steps in enumerate(pianoroll):
+                    if note_idx % 2 == 0:
+                        time_step_idx = 0
+                        while time_step_idx < tf.size(note_time_steps):
+                            note_vel = note_time_steps[time_step_idx]
+                            # for time_step_idx, note_vel in enumerate(note_time_steps):
+                            velocity = int(math.ceil(K.eval(note_vel) * 127))
+                            print(note_idx, time_step_idx, velocity)
+                            time_step_idx += 1
+
+                            if velocity >= self._min_velocity_threshold:
+                                start_time_sec = time_step_idx * tatum_seconds
+                                end_time_sec = start_time_sec + tatum_seconds
+                                while time_step_idx < tf.size(note_time_steps) \
+                                    and round(K.eval(pianoroll[note_idx + 1][time_step_idx])) == 1:
+
+                                    time_step_idx += 1
+                                    end_time_sec += tatum_seconds
+
+                                note_midi_number = int(note_idx / 2)
+                                assert 0 <= note_midi_number <= 127
+                                assert 0 <= velocity <= 127
+                                assert start_time_sec < end_time_sec
+                                note = pretty_midi.Note(
+                                    velocity=velocity,
+                                    pitch=note_midi_number,
+                                    start=start_time_sec,
+                                    end=end_time_sec
+                                )
+                                piano_instr.notes.append(note)
+                                print(note)
+                                print(time_step_idx, note_idx)
+
+                midi_file.instruments.append(piano_instr)
+
                 print('./../resources/eval/midi_out/' + str(file_num) + '.mid')
                 midi_file.write('./../resources/eval/midi_out/' + str(file_num) + '.mid')
 
@@ -108,6 +116,7 @@ class Evaluator(object):
         """
         The number of created midi files is max(max_outputs, batch_size, z_samples)
         """
+
         def fetch_z_sample_batches():
             # load z from file if available
             z_samples = None
@@ -138,4 +147,3 @@ class Evaluator(object):
         print('Done')
         # print('results:', results)
         self.create_midi_files(pianoroll_batches=results, max_outputs=max_outputs)
-
