@@ -140,8 +140,12 @@ class Evaluator(object):
                 break
             z = tf.convert_to_tensor(z_sample_batches[idx * 2:(idx * 2) + 2, :])
 
+            if use_pianoroll_input:
+                sampling_inputs = input_batch[0]
+            else:
+                sampling_inputs = input_batch
             results.append(self._model.sample(
-                input_batch[0],  # test_batch is a list of 2 identical 'data sources' for testing
+                sampling_inputs,
                 use_pianoroll_input=use_pianoroll_input,
                 z_sample=z,
             ))
