@@ -1,6 +1,6 @@
 # TODO - DOC
 # TODO: delete print
-# todo: each note is a new note right now
+# todo: each note is a new note right now [fixed, needs to be tested further]
 
 from keras import backend as K
 import tensorflow as tf
@@ -50,11 +50,38 @@ class Evaluator(object):
                 piano_instr = pretty_midi.Instrument(program=piano_program)
 
                 # per ogni elem della serie temporale
-                for time_idx, time_step in enumerate(pianoroll):
-                    for note_idx, note in enumerate(time_step):
-                        if note_idx % 2 == 0 and K.eval(note) != 0.0:
-                            start_time_sec = time_idx * tatum_seconds
+                # for time_idx, time_step in enumerate(pianoroll):
+                #     for note_idx, note in enumerate(time_step):
+                #         if note_idx % 2 == 0 and K.eval(note) != 0.0:
+                #             start_time_sec = time_idx * tatum_seconds
+                #             end_time_sec = start_time_sec + tatum_seconds
+                #             note_midi_number = int(note_idx / 2)
+                #             velocity = int(math.ceil(K.eval(note) * 127))
+                #             assert 0 <= note_midi_number <= 127
+                #             assert 0 <= math.ceil(K.eval(note) * 127) <= 127
+                #             assert start_time_sec < end_time_sec
+                #             note = pretty_midi.Note(
+                #                 velocity=velocity,
+                #                 pitch=note_midi_number,
+                #                 start=start_time_sec,
+                #                 end=end_time_sec  # todo: each note is a new note right now
+                #             )
+                #             piano_instr.notes.append(note)
+                # for each note add it each time it is present in the temporal series
+                for note_idx, note in enumerate(pianoroll[-1]):
+                    if note_idx % 2 == 0 and K.eval(note) != 0.0:
+                        time_step_idx = 0
+                        while time_step_idx < pianoroll.shape[0]:  # todo: clean (refactor using iterator)
+                            start_time_sec = time_step_idx * tatum_seconds
                             end_time_sec = start_time_sec + tatum_seconds
+                            # increase length if sustained note and skip replay
+                            note_time_steps_len = int(1)
+                            for time_step in range(time_step_idx, pianoroll.shape[0]):
+                                if K.eval(pianoroll[time_step][note_idx+1]):
+                                    end_time_sec += tatum_seconds
+                                    note_time_steps_len += 1
+                            time_step_idx += note_time_steps_len
+
                             note_midi_number = int(note_idx / 2)
                             velocity = int(math.ceil(K.eval(note) * 127))
                             assert 0 <= note_midi_number <= 127
@@ -67,6 +94,8 @@ class Evaluator(object):
                                 end=end_time_sec  # todo: each note is a new note right now
                             )
                             piano_instr.notes.append(note)
+                            time_step_idx += 1
+
 
                 midi_file.instruments.append(piano_instr)
                 file_num = int(pr_idx+batch_idx)
