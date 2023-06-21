@@ -61,7 +61,7 @@ class Trainer(object):
             class_weight=None,
             sample_weight=None,
             initial_epoch=self._training_config.get("initial_epoch"),
-            validation_steps=self._training_config.get("validation_steps"),
+            validation_steps=int(self._training_config.get("validation_steps")),
             validation_batch_size=self._training_config.get("validation_batch_size"),
             validation_freq=self._training_config.get("validation_freq"),
             max_queue_size=self._training_config.get("max_queue_size"),

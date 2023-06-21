@@ -105,5 +105,6 @@ def pairwise_distance(x1, x2, metric='euclidean'):
     else:
         raise ValueError('Metric {} not supported. Available options: euclidean, cosine, manhattan, '
                          'sqrt_euclidean, dot_product'.format(metric))
-
+    # distances = K.exp(-(distances**2)/10000)
+    distances = K.exp(-distances)
     return distances

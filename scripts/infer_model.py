@@ -6,6 +6,7 @@ from tensorflow._api.v2.data import Dataset
 
 from definitions import ConfigSections
 from definitions import Paths
+import numpy as np
 
 from modules.data.augmentation.noteseq import NoteSequenceAugmenter
 from modules.data.converters.pianoroll import PianoRollConverter
@@ -19,7 +20,6 @@ from modules.utilities import math
 from modules.evalutation.evaluator import Evaluator
 
 
-
 if __name__ == "__main__":
     representation_config = config.load_configuration_section(ConfigSections.REPRESENTATION)
     test_config = config.load_configuration_section(ConfigSections.TEST)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     max_outputs = int(test_config.get('n_tests'))
 
     # Load data
-    print('loading data... ')
+    print('Loading data... ')
     test_tfrecord = test_config.get("test_examples_path")
 
     data_converter = PianoRollConverter(
@@ -75,6 +75,7 @@ if __name__ == "__main__":
 
     # load checkpoint weights
     checkpoint_weights_file_name = test_config.get('infer_checkpoint_file_name')
+    print('loading weights from', checkpoint_weights_file_name)
     vae.load_weights(Paths.TRAIN_CHECK_DIR / checkpoint_weights_file_name)
     print('Done')
     # vae.summary()
@@ -85,13 +86,18 @@ if __name__ == "__main__":
     # Prepare SSMs
     ssm_dataset = []
     compute_ssm = Lambda(lambda args: math.pairwise_distance(args[0], args[0], args[1]))
-    for test_data in test_dataset:
-        print(test_data)
+    for idx, test_data in enumerate(test_dataset):
+        # if idx > 0:  # todo: hardcoded - change
+            # break
+        print('test_data.shape:', test_data[0].shape)
         ssm_in = test_data[0]  # test data is a tuple of redundant data
+        np.save(str(Paths.EVAL_OUTPUT_DIR) + '/' + 'ssm_in_' + str(idx) + '.npy', ssm_in.numpy())
         ssm = compute_ssm((ssm_in, model_config.get("ssm_function")))
-        print(ssm)
+        print('ssm:', ssm.shape)
+        np.save(str(Paths.EVAL_OUTPUT_DIR) + '/' + 'ssm_matrix_' + str(idx) + '.npy', ssm.numpy())
         ssm_dataset.append(ssm)
-        break
+
+    print('dataset len:', len(ssm_dataset))
     ssm_dataset = Dataset.from_tensor_slices(ssm_dataset, name='ssm_dataset')
 
     # Inference

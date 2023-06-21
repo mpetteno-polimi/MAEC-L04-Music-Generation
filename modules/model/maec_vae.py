@@ -14,7 +14,6 @@ class MaecVAE(keras.Model):
     def __init__(self, encoder, decoder, cnn, name="maec_vae", **kwargs):
         super().__init__(name=name, **kwargs)
         self._model_config = config.load_configuration_section(ConfigSections.MODEL)
-        self._representation_config = config.load_configuration_section(ConfigSections.REPRESENTATION)
         self.encoder = encoder
         self.decoder = decoder
         self.cnn = cnn
@@ -43,7 +42,7 @@ class MaecVAE(keras.Model):
         :param use_pianoroll_input: if false input should be a batch of ssm tensors
                                 if true it should be a batcch of pianoroll tensors
         """
-
+        representation_config = config.load_configuration_section(ConfigSections.REPRESENTATION)
         z_size = self._model_config.get("z_size")
 
         if use_pianoroll_input:
@@ -51,8 +50,8 @@ class MaecVAE(keras.Model):
             ssm = self._ssm_layer((pianoroll, self._model_config.get("ssm_function")), training=False, mask=None)
 
         else:
-            pianoroll_features_num = 2 * (int(self._representation_config.get('piano_max_midi_pitch')) - int(
-                self._representation_config.get('piano_min_midi_pitch')) + 1)
+            pianoroll_features_num = 2 * (int(representation_config.get('piano_max_midi_pitch')) - int(
+                representation_config.get('piano_min_midi_pitch')) + 1)
 
             ssm = inputs
             pianoroll = K.zeros(shape=(inputs.shape[0], inputs.shape[1], pianoroll_features_num))
