@@ -1,7 +1,7 @@
 import logging
 import os
 
-from magenta.models.music_vae.maec import z_sampling
+from utilities import sampling
 from utilities import complexity_measures
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,7 +12,7 @@ from scipy.spatial import distance
 
 
 def custom_z_plots():
-    z_samples = z_sampling.grid_sampling(
+    z_samples = sampling.grid_sampling(
         z_size=256,
         grid_width=5,
         samples_per_point=16,
@@ -106,6 +106,7 @@ def magenta_output_folder_evaluate():
     max_complexity = np.max(complexities)
     min_complexity = np.max(complexities)
 
+    '''
     results = list(zip(complexities, midi_file_paths, midi_files, z_coords, z_grid_points_coords))
     results.sort(key=lambda x: x[0])
     high_complexity = [r for r in results if r[0] > 6]
@@ -116,11 +117,11 @@ def magenta_output_folder_evaluate():
     mean_lc = np.mean(distance.pdist(low_c_coords, metric='euclidean', out=None))
     print('mean high compl', mean_hc)
     print('mean low compl', mean_lc)
-    plt.figure(0)
-    # make data:
-    x = 0.5 + np.arange(complexities.shape[0])
+    '''
 
     # plot
+    plt.figure(0)
+    x = 0.5 + np.arange(complexities.shape[0])
     fig, ax = plt.subplots()
 
     ax.bar(x, complexities, width=1, edgecolor="white", linewidth=1)
