@@ -2,7 +2,7 @@ import logging
 import os
 
 from magenta.models.music_vae.maec import z_sampling
-from magenta.models.music_vae.maec import complexity_measures
+from utilities import complexity_measures
 import numpy as np
 import matplotlib.pyplot as plt
 import pretty_midi
