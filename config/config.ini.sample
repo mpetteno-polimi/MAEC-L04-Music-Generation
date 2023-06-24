@@ -7,5 +7,5 @@ N_SAMPLES_PER_GRID_POINT = 32
 GRID_WIDTH = 6
 RAND_SEED = 99
 TEMPERATURE = 1.0
-OUTPUT_DIR = ./resources/samples
+OUTPUT_DIR = ./resources/runs
 LOG = DEBUG

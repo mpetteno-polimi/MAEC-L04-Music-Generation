@@ -23,8 +23,9 @@ def run():
     rand_seed = script_config.get("rand_seed")
 
     run_folder_name = 'config_%s_seed_%d' % (model_config, rand_seed)
-    run_folder_path = os.path.join(output_dir, run_folder_name)
-    file_name_pattern = run_folder_path + "/**/*.mid"
+    samples_folder_name = 'samples'
+    samples_folder_path = os.path.join(output_dir, run_folder_name, samples_folder_name)
+    file_name_pattern = samples_folder_path + "/**/*.mid"
     for idx, file_path in enumerate(glob.glob(file_name_pattern, recursive=True)):
         # Load MIDI file
         midi_file = pretty_midi.PrettyMIDI(file_path)

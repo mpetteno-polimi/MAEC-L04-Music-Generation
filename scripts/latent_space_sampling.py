@@ -53,13 +53,14 @@ def run(config_map):
 
     # Create main run folder
     run_folder_name = 'config_%s_seed_%d' % (model_config, rand_seed)
-    run_folder_path = os.path.join(output_dir, run_folder_name)
-    tf.compat.v1.gfile.MakeDirs(run_folder_path)
+    samples_folder_name = 'samples'
+    samples_folder_path = os.path.join(output_dir, run_folder_name, samples_folder_name)
+    tf.compat.v1.gfile.MakeDirs(samples_folder_path)
 
     for i in range(n_grid_points):
         # Create current grid point folder
         grid_point_folder_name = 'grid_point_%d' % i
-        grid_point_folder_path = os.path.join(run_folder_path, grid_point_folder_name)
+        grid_point_folder_path = os.path.join(samples_folder_path, grid_point_folder_name)
         tf.compat.v1.gfile.MakeDirs(grid_point_folder_path)
 
         # Save current mean point coordinate file
