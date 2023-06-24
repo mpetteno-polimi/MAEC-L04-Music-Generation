@@ -81,22 +81,3 @@ def contour(midi: pretty_midi.PrettyMIDI):
     pitch_list = get_pitch_list(midi)
     metric = np.sum(np.diff(pitch_list)) / 88
     return metric
-
-
-# Example
-if __name__ == '__main__':
-
-    midi_paths = [
-        "D:\magenta_out\config_hierdec-mel_16bar_seed_99\grid_point_0\sample_0\sample_0_midi_out.mid",
-        "D:\magenta_out\config_hierdec-mel_16bar_seed_99\grid_point_0\sample_1\sample_1_midi_out.mid",
-    ]
-
-    for midi_path in midi_paths:
-        midi = pretty_midi.PrettyMIDI(midi_path)
-        midi = sanitize(midi, bars=16)
-
-        print('Toussaint:', toussaint(midi, bars=16))
-        print('Note density:', note_density(midi, bars=16))
-        print('Pitch range:', pitch_range(midi))
-        print('Contour:', contour(midi))
-        print()

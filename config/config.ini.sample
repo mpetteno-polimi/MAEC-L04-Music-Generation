@@ -1,6 +1,7 @@
 [LatentSpaceSampling]
 CHECKPOINT_FILE = ./resources/checkpoints/hierdec-mel_16bar.tar
 MODEL_CONFIG = hierdec-mel_16bar
+NUM_BARS = 16
 N_GRID_POINTS = 100
 N_SAMPLES_PER_GRID_POINT = 32
 GRID_WIDTH = 6
