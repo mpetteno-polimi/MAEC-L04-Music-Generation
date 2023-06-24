@@ -63,7 +63,7 @@ def run(config_map):
         tf.compat.v1.gfile.MakeDirs(grid_point_folder_path)
 
         # Save current mean point coordinate file
-        mean_point_coord_file_name = 'mean_pt_%d_coord.npy' % i
+        mean_point_coord_file_name = 'mean_pt_coord_%d.npy' % i
         mean_point_coord_file_path = os.path.join(grid_point_folder_path, mean_point_coord_file_name)
         mean_point_coord = z_grid[i, :]
         np.save(mean_point_coord_file_path, mean_point_coord)
@@ -76,18 +76,16 @@ def run(config_map):
             tf.compat.v1.gfile.MakeDirs(sample_folder_path)
 
             # Save current sample coordinate file
-            sample_coord_file_name = 'sample_%d_coord.npy' % j
+            sample_coord_file_name = 'sample_coord_%d.npy' % j
             sample_coord_file_path = os.path.join(sample_folder_path, sample_coord_file_name)
             sample_coord = batched_gaussian_samples[j, i, :]
             np.save(sample_coord_file_path, sample_coord)
 
             # Save current sample MIDI output
-            sample_midi_file_name = 'sample_%d_midi_out.mid' % j
+            sample_midi_file_name = 'sample_midi_out_%d.mid' % j
             sample_midi_file_path = os.path.join(sample_folder_path, sample_midi_file_name)
             sample_note_sequence = results[i*j]
             note_seq.sequence_proto_to_midi_file(sample_note_sequence, sample_midi_file_path)
-
-    logging.info('Done.')
 
 
 def main(_):

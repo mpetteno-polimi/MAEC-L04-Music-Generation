@@ -52,7 +52,7 @@ class MAECTrainedModel(TrainedModel):
             d=self._config.hparams.z_size,
             grid_points=z_grid,
             samples_per_point=n_samples_per_grid_point,
-            sigma=math.mean_points_distance(z_grid) / 3,  # TODO: do distance make sense?
+            sigma=1,
             rand_seed=self._rand_seed
         )
 
