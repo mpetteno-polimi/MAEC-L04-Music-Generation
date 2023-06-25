@@ -6,13 +6,16 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from magenta.models.music_vae.configs import CONFIG_MAP
 from scipy.stats import pearsonr
 from scipy.interpolate import griddata
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from sklearn.manifold import MDS
 
+import latent_space_complexities
 from definitions import ConfigSections
-from modules.utilities import config as config_file
+from modules.maec.maec_trained_model import MAECTrainedModel
+from modules.utilities import config as config_file, file_system
 
 logging = tf.compat.v1.logging
 script_config = config_file.load_configuration_section(ConfigSections.LATENT_SPACE_SAMPLING)
@@ -60,13 +63,13 @@ def load_matrices(grid_folder_path):
     return np.asarray(grid_points_coordinates), np.asarray(sample_coordinates), np.asarray(sample_complexities)
 
 
-def evaluate(output_dir, grid_points_coordinates, sample_coordinates, sample_complexities):
+def evaluate(output_dir, grid_points_coordinates, sample_coordinates, sample_complexities, model):
     correlation(output_dir, grid_points_coordinates, sample_coordinates, sample_complexities)
     multi_dimensional_scaling(output_dir, grid_points_coordinates, sample_coordinates)
+    histograms(output_dir, grid_points_coordinates, sample_complexities, model)
 
 
 def correlation(output_dir, grid_points_coordinates, sample_coordinates, sample_complexities):
-
     def compute_correlation_coefficients(coordinates, complexities, dimensions):
         coefficients = np.zeros(dimensions)
         for i in range(dimensions):
@@ -183,17 +186,88 @@ def multi_dimensional_scaling(output_dir, grid_points_coordinates, sample_comple
         plt.savefig(os.path.join(complexity_folder_path, '%s_mds_tricontour.png' % complexities_method))
 
 
-def run():
+def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
+    sample_complexities_mean = np.nanmean(sample_complexities, axis=1)
+    histograms_folder_name = 'histograms'
+    histograms_folder_path = os.path.join(output_dir, histograms_folder_name)
+
+    for complexity_id, complexities_method in enumerate(complexities_methods):
+        # Create complexity method output folder
+        complexity_folder_path = os.path.join(histograms_folder_path, complexities_method)
+        tf.compat.v1.gfile.MakeDirs(complexity_folder_path)
+
+        # Divide complexity mean values in three ranges (low, mid, high)
+        ranges_names = ['low', 'mid', 'high']
+        current_complexity_mean = sample_complexities_mean[:, complexity_id]
+        sorted_complexities_mean_idx = np.argsort(current_complexity_mean, axis=0)
+        ranges_idx = np.array_split(sorted_complexities_mean_idx, 3)
+
+        for idx, range_idx in enumerate(ranges_idx):
+            # Create range output folder
+            range_folder_path = os.path.join(complexity_folder_path, ranges_names[idx])
+
+            if not os.path.exists(range_folder_path):
+                # Create main directory
+                tf.compat.v1.gfile.MakeDirs(range_folder_path)
+
+                # Pick three complexity values from the range and find their corresponding coordinates
+                random_points_idx = np.random.choice(range_idx, size=3)
+                random_points = grid_points_coordinates[random_points_idx]
+
+                # Compute the centroid
+                centroid = np.mean(random_points, axis=0)
+                z_grid = np.asarray([centroid])
+
+                # Batch sampling around centroid
+                logging.info('Sampling latent space...')
+                results, batched_gaussian_samples = model.grid_sample(grid_points=z_grid,
+                                                                      n_samples_per_grid_point=
+                                                                      sample_complexities.shape[1],
+                                                                      sigma=1)
+                logging.info('Saving results...')
+                range_samples_folder_path = file_system.save_grid_sampling_results(range_folder_path, results, z_grid,
+                                                                                   batched_gaussian_samples)
+            else:
+                range_samples_folder_path = os.path.join(range_folder_path, "samples")
+
+            # Compute complexities
+            complexity_values = latent_space_complexities.run(range_samples_folder_path, metrics=[complexities_method])
+
+            # Plot continuous histogram of complexity
+            plt.figure()
+            sns.histplot(complexity_values[:, 0], bins='auto', color='blue', edgecolor='black', alpha=0.7)
+            # Add labels and a title
+            plt.xlabel(complexities_method)
+            plt.ylabel('Frequency')
+            # Display the histogram
+            plt.savefig(os.path.join(range_folder_path, '%s_%s_histogram.png' % (ranges_names[idx],
+                                                                                 complexities_method)))
+
+
+def run(config_map):
     output_dir = os.path.expanduser(script_config.get("output_dir"))
     model_config = script_config.get("model_config")
+    checkpoint_dir_or_path = os.path.expanduser(script_config.get("checkpoint_file"))
+    n_samples_per_grid_point = script_config.get("n_samples_per_grid_point")
     rand_seed = script_config.get("rand_seed")
+
+    # Load model
+    if model_config not in config_map:
+        raise ValueError('Invalid config name: %s' % model_config)
+    config = config_map[model_config]
+    config.data_converter.max_tensors_per_item = None
+
+    logging.info('Loading model...')
+    model = MAECTrainedModel(config,
+                             batch_size=n_samples_per_grid_point,
+                             checkpoint_dir_or_path=checkpoint_dir_or_path)
+
+    # Load matrices
     run_folder_name = 'config_%s_seed_%d' % (model_config, rand_seed)
     samples_folder_name = 'samples'
     samples_folder_path = os.path.join(output_dir, run_folder_name, samples_folder_name)
     evaluation_folder_path = os.path.join(output_dir, run_folder_name, 'evaluation')
     tf.compat.v1.gfile.MakeDirs(evaluation_folder_path)
-
-    # Load matrices
     grid_points_coordinates, sample_coordinates, sample_complexities = load_matrices(samples_folder_path)
 
     # Save matrices (for sharing purposes)
@@ -203,12 +277,12 @@ def run():
     np.save(os.path.join(matrices_folder_path, 'sample_coordinates'), sample_coordinates)
     np.save(os.path.join(matrices_folder_path, 'sample_complexities'), sample_complexities)
 
-    evaluate(evaluation_folder_path, grid_points_coordinates, sample_coordinates, sample_complexities)
+    evaluate(evaluation_folder_path, grid_points_coordinates, sample_coordinates, sample_complexities, model)
 
 
 def main(_):
     logging.set_verbosity(script_config.get("log"))
-    run()
+    run(CONFIG_MAP)
 
 
 def console_entry_point():

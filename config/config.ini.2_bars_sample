@@ -1,0 +1,12 @@
+[LatentSpaceSampling]
+CHECKPOINT_FILE = ./resources/checkpoints/cat-mel_2bar_big.tar
+MODEL_CONFIG = cat-mel_2bar_big
+NUM_BARS = 2
+N_GRID_POINTS = 100
+N_SAMPLES_PER_GRID_POINT = 64
+K_SIGMA = 3
+GRID_WIDTH = 6
+RAND_SEED = 99
+TEMPERATURE = 1.0
+OUTPUT_DIR = ./resources/runs
+LOG = DEBUG

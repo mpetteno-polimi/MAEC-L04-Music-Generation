@@ -18,16 +18,14 @@ class MAECTrainedModel(TrainedModel):
                                                var_name_substitutions=var_name_substitutions,
                                                session_target=session_target, **sample_kwargs)
         self._config_file = config_file.load_configuration_section(ConfigSections.LATENT_SPACE_SAMPLING)
-        self._grid_width = self._config_file.get("grid_width")
-        self._rand_seed = self._config_file.get("rand_seed")
 
-    def grid_sample(self, n_grid_points, n_samples_per_grid_point, k_sigma=3, length=None, temperature=1.0):
+    def grid_sample(self, grid_points, n_samples_per_grid_point, sigma, length=None, temperature=1.0):
         """ TODO
 
         Args:
-          n_grid_points: .
+          grid_points: .
           n_samples_per_grid_point: .
-          k_sigma: .
+          sigma: .
           length: The maximum length of a sample in decoder iterations. Required
             if end tokens are not being used.
           temperature: The softmax temperature to use (if applicable).
@@ -38,36 +36,27 @@ class MAECTrainedModel(TrainedModel):
             used.
         """
 
+        if length is None:
+            length = self._config.hparams.max_seq_len
+
         feed_dict = {
             self._temperature: temperature,
             self._max_length: length
         }
 
-        z_grid = sampling.latin_hypercube_sampling(
-            d=self._config.hparams.z_size,
-            grid_width=self._grid_width,
-            n_grid_points=n_grid_points,
-            rand_seed=self._rand_seed
-        )
-
-        sigma, min_point_distance = sampling.get_sigma_from_grid_points(z_grid, k_sigma)
-        tf.compat.v1.logging.info("Minimum distance between grid points is %s" % min_point_distance)
-        tf.compat.v1.logging.info("Setting sigma to %s" % sigma)
-
         tf.compat.v1.logging.info("Performing gaussian sampling...")
         batched_gaussian_samples = sampling.batch_gaussian_sampling(
             d=self._config.hparams.z_size,
-            grid_points=z_grid,
+            grid_points=grid_points,
             samples_per_point=n_samples_per_grid_point,
-            sigma=sigma,
-            rand_seed=self._rand_seed
+            sigma=sigma
         )
 
         tf.compat.v1.logging.info("Decoding samples...")
         outputs = []
-        for idx in range(n_grid_points):
+        for idx in range(grid_points.shape[0]):
             feed_dict[self._z_input] = batched_gaussian_samples[:, idx, :]
             outputs.append(self._sess.run(self._outputs, feed_dict))
 
         samples = np.vstack(outputs)
-        return self._config.data_converter.from_tensors(samples), z_grid, batched_gaussian_samples
+        return self._config.data_converter.from_tensors(samples), batched_gaussian_samples

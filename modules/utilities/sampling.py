@@ -1,4 +1,3 @@
-
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy.stats import qmc
@@ -17,12 +16,15 @@ def latin_hypercube_sampling(d, grid_width, n_grid_points, rand_seed):
     return grid_points
 
 
-def batch_gaussian_sampling(d, grid_points, samples_per_point, sigma, rand_seed):
-    np.random.seed(rand_seed)
+def batch_gaussian_sampling(d, grid_points, samples_per_point, sigma):
     batched_samples = np.zeros(shape=(samples_per_point, grid_points.shape[0], d))
-    for idx, mean in enumerate(grid_points):
-        samples = [sigma * np.random.randn(d) + mean for _ in range(samples_per_point)]
-        batched_samples[:, idx, :] = samples
+    for i, mean in enumerate(grid_points):
+        samples = []
+        for j in range(samples_per_point):
+            rand_seed = ((i + 1) * 6) * j + j ^ ((i + 1) * 5)
+            np.random.seed(rand_seed)
+            samples.append(sigma * np.random.randn(d) + mean)
+        batched_samples[:, i, :] = samples
 
     return np.asarray(batched_samples)
 
