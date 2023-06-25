@@ -42,8 +42,11 @@ def load_matrices(grid_folder_path):
                 # Load sample complexities
                 sample_complexities_file_name = 'sample_complexities_%s.npy' % sample_folder_idx
                 sample_complexity_file_path = os.path.join(sample_folder_path, sample_complexities_file_name)
-                sample_complexity = np.load(sample_complexity_file_path)
-                grid_point_samples_complexities.append(sample_complexity)
+                if os.path.isfile(sample_complexity_file_path):
+                    sample_complexity = np.load(sample_complexity_file_path)
+                    grid_point_samples_complexities.append(sample_complexity)
+                else:
+                    grid_point_samples_complexities.append([np.nan, np.nan, np.nan, np.nan])
 
                 # Load sample coordinates
                 sample_coord_file_name = 'sample_coord_%s.npy' % sample_folder_idx
@@ -81,11 +84,15 @@ def correlation(output_dir, grid_points_coordinates, sample_coordinates, sample_
     correlation_folder_path = os.path.join(output_dir, 'correlation')
     tf.compat.v1.gfile.MakeDirs(correlation_folder_path)
     n_dimension = sample_coordinates.shape[2]
-    sample_complexities_mean = sample_complexities.mean(1)
+    sample_complexities_mean = np.nanmean(sample_complexities, axis=1)
 
     # Flatten first two dimensions
     flatten_coordinates = sample_coordinates.reshape(-1, n_dimension)
     flatten_complexities = sample_complexities.reshape(-1, sample_complexities.shape[2])
+
+    # Filter NaN values from flatten arrays
+    flatten_coordinates = flatten_coordinates[~np.isnan(flatten_complexities).any(axis=1), :]
+    flatten_complexities = flatten_complexities[~np.isnan(flatten_complexities).any(axis=1), :]
 
     # Plot correlation between all complexities methods
     cmat = np.corrcoef(flatten_complexities.T)

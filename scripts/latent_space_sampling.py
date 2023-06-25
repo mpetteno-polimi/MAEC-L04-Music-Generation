@@ -29,6 +29,7 @@ def run(config_map):
     model_config = script_config.get("model_config")
     n_grid_points = script_config.get("n_grid_points")
     n_samples_per_grid_point = script_config.get("n_samples_per_grid_point")
+    k_sigma = script_config.get('k_sigma')
     temperature = script_config.get("temperature")
     rand_seed = script_config.get("rand_seed")
     output_dir = os.path.expanduser(script_config.get("output_dir"))
@@ -46,6 +47,7 @@ def run(config_map):
     logging.info('Sampling latent space...')
     results, z_grid, batched_gaussian_samples = model.grid_sample(n_grid_points=n_grid_points,
                                                                   n_samples_per_grid_point=n_samples_per_grid_point,
+                                                                  k_sigma=k_sigma,
                                                                   length=config.hparams.max_seq_len,
                                                                   temperature=temperature)
 

@@ -26,10 +26,16 @@ def run():
     samples_folder_name = 'samples'
     samples_folder_path = os.path.join(output_dir, run_folder_name, samples_folder_name)
     file_name_pattern = samples_folder_path + "/**/*.mid"
+    empty_midi_file_count = 0
     for idx, file_path in enumerate(glob.glob(file_name_pattern, recursive=True)):
         # Load MIDI file
         midi_file = pretty_midi.PrettyMIDI(file_path)
-        midi_file = complexity_measures.sanitize(midi_file, num_bars)
+        try:
+            midi_file = complexity_measures.sanitize(midi_file, num_bars)
+        except AssertionError as e:
+            logging.warning("Skipping MIDI file %s. Cause is: %s" % (file_path, e.args))
+            empty_midi_file_count = empty_midi_file_count + 1
+            continue
 
         # Complexities computation
         note_density = complexity_measures.note_density(midi_file, num_bars, binary=True)
@@ -45,6 +51,8 @@ def run():
         sample_complexities_file_path = os.path.join(folder_path, sample_complexities_file_name)
         sample_complexities = [toussaint, note_density, pitch_range, contour]
         np.save(sample_complexities_file_path, sample_complexities)
+
+    logging.info("Found %d empty MIDI files." % empty_midi_file_count)
 
 
 def main(_):

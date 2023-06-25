@@ -1,10 +1,11 @@
 
 import numpy as np
+import tensorflow as tf
 
 from magenta.models.music_vae import TrainedModel
 
 from definitions import ConfigSections
-from modules.utilities import sampling, math
+from modules.utilities import sampling
 from modules.utilities import config as config_file
 
 
@@ -20,12 +21,13 @@ class MAECTrainedModel(TrainedModel):
         self._grid_width = self._config_file.get("grid_width")
         self._rand_seed = self._config_file.get("rand_seed")
 
-    def grid_sample(self, n_grid_points, n_samples_per_grid_point, length=None, temperature=1.0):
+    def grid_sample(self, n_grid_points, n_samples_per_grid_point, k_sigma=3, length=None, temperature=1.0):
         """ TODO
 
         Args:
           n_grid_points: .
           n_samples_per_grid_point: .
+          k_sigma: .
           length: The maximum length of a sample in decoder iterations. Required
             if end tokens are not being used.
           temperature: The softmax temperature to use (if applicable).
@@ -48,15 +50,20 @@ class MAECTrainedModel(TrainedModel):
             rand_seed=self._rand_seed
         )
 
+        sigma, min_point_distance = sampling.get_sigma_from_grid_points(z_grid, k_sigma)
+        tf.compat.v1.logging.info("Minimum distance between grid points is %s" % min_point_distance)
+        tf.compat.v1.logging.info("Setting sigma to %s" % sigma)
+
+        tf.compat.v1.logging.info("Performing gaussian sampling...")
         batched_gaussian_samples = sampling.batch_gaussian_sampling(
             d=self._config.hparams.z_size,
             grid_points=z_grid,
             samples_per_point=n_samples_per_grid_point,
-            sigma=1,
+            sigma=sigma,
             rand_seed=self._rand_seed
         )
 
-        # Decode samples
+        tf.compat.v1.logging.info("Decoding samples...")
         outputs = []
         for idx in range(n_grid_points):
             feed_dict[self._z_input] = batched_gaussian_samples[:, idx, :]

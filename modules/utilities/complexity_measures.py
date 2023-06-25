@@ -4,7 +4,8 @@ import pretty_midi
 
 def sanitize(midi: pretty_midi.PrettyMIDI, bars: int):
     assert len(midi.instruments) == 1, \
-        f'MusicVAE output is expected to have a single MIDI instrument. Found ({len(midi.instruments)}) instruments instead'
+        f'MusicVAE output is expected to have a single MIDI instrument. Found ({len(midi.instruments)})' \
+        f'instruments instead'
 
     for instrument in midi.instruments:
         instrument.pitch_bends = []
@@ -60,7 +61,7 @@ def toussaint(midi: pretty_midi.PrettyMIDI, bars: int = 16, binary: bool = True)
                 break
 
     metricity = np.sum(hierarchy * velocity)
-    metric = max_sum[n_onsets] - metricity
+    metric = max_sum[n_onsets-1] - metricity
 
     return metric
 
