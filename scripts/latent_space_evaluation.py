@@ -3,6 +3,7 @@
 import os
 import numpy as np
 import pandas as pd
+import scipy.stats
 import seaborn as sns
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -65,7 +66,7 @@ def load_matrices(grid_folder_path):
 
 def evaluate(output_dir, grid_points_coordinates, sample_coordinates, sample_complexities, model):
     correlation(output_dir, grid_points_coordinates, sample_coordinates, sample_complexities)
-    multi_dimensional_scaling(output_dir, grid_points_coordinates, sample_coordinates)
+    multi_dimensional_scaling(output_dir, grid_points_coordinates, sample_complexities)
     histograms(output_dir, grid_points_coordinates, sample_complexities, model)
 
 
@@ -157,7 +158,7 @@ def correlation(output_dir, grid_points_coordinates, sample_coordinates, sample_
 def multi_dimensional_scaling(output_dir, grid_points_coordinates, sample_complexities):
     mds_folder_path = os.path.join(output_dir, 'mds')
     tf.compat.v1.gfile.MakeDirs(mds_folder_path)
-    sample_complexities_mean = sample_complexities.mean(1)
+    sample_complexities_mean = np.nanmean(sample_complexities, axis=1)
 
     for complexity_id, complexities_method in enumerate(complexities_methods):
         # Create output directory
@@ -202,6 +203,7 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
         sorted_complexities_mean_idx = np.argsort(current_complexity_mean, axis=0)
         ranges_idx = np.array_split(sorted_complexities_mean_idx, 3)
 
+        range_complexities = np.zeros(shape=(sample_complexities.shape[1], 3))
         for idx, range_idx in enumerate(ranges_idx):
             # Create range output folder
             range_folder_path = os.path.join(complexity_folder_path, ranges_names[idx])
@@ -211,14 +213,28 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
                 tf.compat.v1.gfile.MakeDirs(range_folder_path)
 
                 # Pick three complexity values from the range and find their corresponding coordinates
-                random_points_idx = np.random.choice(range_idx, size=3)
-                random_points = grid_points_coordinates[random_points_idx]
+                # random_points_idx = np.random.choice(range_idx, size=3)
+                # random_points = grid_points_coordinates[random_points_idx]
+                #
+                # # Compute the centroid
+                # centroid = np.mean(random_points, axis=0)
+                # z_grid = np.asarray([centroid])
 
-                # Compute the centroid
-                centroid = np.mean(random_points, axis=0)
-                z_grid = np.asarray([centroid])
+                # Choose the grid point - TODO temporary
+                if idx == 0:
+                    # Low range
+                    chosen_point_idx = range_idx[0]
+                elif idx == 1:
+                    # Mid range
+                    chosen_point_idx = range_idx[int((len(range_idx) - 1) / 2)]
+                elif idx == 2:
+                    # High range
+                    chosen_point_idx = range_idx[-1]
+                else:
+                    chosen_point_idx = 0
+                z_grid = np.asarray([grid_points_coordinates[chosen_point_idx]])
 
-                # Batch sampling around centroid
+                # Batch sampling around chosen point
                 logging.info('Sampling latent space...')
                 results, batched_gaussian_samples = model.grid_sample(grid_points=z_grid,
                                                                       n_samples_per_grid_point=
@@ -232,16 +248,26 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
 
             # Compute complexities
             complexity_values = latent_space_complexities.run(range_samples_folder_path, metrics=[complexities_method])
+            range_complexities[:, idx] = complexity_values[:, 0]
 
             # Plot continuous histogram of complexity
             plt.figure()
-            sns.histplot(complexity_values[:, 0], bins='auto', color='blue', edgecolor='black', alpha=0.7)
-            # Add labels and a title
+            sns.histplot(range_complexities[:, idx], bins=20, kde=True, legend=False)
             plt.xlabel(complexities_method)
-            plt.ylabel('Frequency')
-            # Display the histogram
+            plt.legend(title='Ranges', loc='upper right', labels=[ranges_names[idx]])
             plt.savefig(os.path.join(range_folder_path, '%s_%s_histogram.png' % (ranges_names[idx],
                                                                                  complexities_method)))
+
+        # Plot continuous histogram of complexities
+        plt.figure()
+        sns.histplot(range_complexities, bins=20, kde=True, legend=False)
+        plt.xlabel(complexities_method)
+        plt.legend(title='Ranges', loc='upper right', labels=ranges_names)
+        plt.savefig(os.path.join(complexity_folder_path, '%s_ranges_histogram.png' % complexities_method))
+
+    # Compute statistical test pairwise
+    # scipy.stats.ttest_ind(complexity_values['low'], complexity_values['high'], equal_var=False)
+    # scipy.stats.mannwhitneyu()
 
 
 def run(config_map):
