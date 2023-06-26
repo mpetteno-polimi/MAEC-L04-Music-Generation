@@ -300,6 +300,7 @@ def run(config_map):
 
     logging.info('Loading model...')
     model = MAECTrainedModel(config,
+                             rand_seed=10,
                              batch_size=n_samples_per_grid_point,
                              checkpoint_dir_or_path=checkpoint_dir_or_path)
 

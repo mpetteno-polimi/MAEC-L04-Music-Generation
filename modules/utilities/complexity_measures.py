@@ -80,5 +80,5 @@ def pitch_range(midi: pretty_midi.PrettyMIDI):
 
 def contour(midi: pretty_midi.PrettyMIDI):
     pitch_list = get_pitch_list(midi)
-    metric = np.sum(np.diff(pitch_list)) / 88
+    metric = np.sum(np.abs(np.diff(pitch_list))) / 88
     return metric

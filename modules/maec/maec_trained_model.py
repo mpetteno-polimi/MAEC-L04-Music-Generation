@@ -11,13 +11,14 @@ from modules.utilities import config as config_file
 
 class MAECTrainedModel(TrainedModel):
 
-    def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
+    def __init__(self, config, batch_size, checkpoint_dir_or_path=None, rand_seed=0,
                  var_name_substitutions=None, session_target='', **sample_kwargs):
         super(MAECTrainedModel, self).__init__(config, batch_size,
                                                checkpoint_dir_or_path=checkpoint_dir_or_path,
                                                var_name_substitutions=var_name_substitutions,
                                                session_target=session_target, **sample_kwargs)
         self._config_file = config_file.load_configuration_section(ConfigSections.LATENT_SPACE_SAMPLING)
+        self._rand_seed = self._config_file.get("rand_seed") - rand_seed
 
     def grid_sample(self, grid_points, n_samples_per_grid_point, sigma, length=None, temperature=1.0):
         """ TODO
@@ -49,7 +50,8 @@ class MAECTrainedModel(TrainedModel):
             d=self._config.hparams.z_size,
             grid_points=grid_points,
             samples_per_point=n_samples_per_grid_point,
-            sigma=sigma
+            sigma=sigma,
+            rand_seed=self._rand_seed
         )
 
         tf.compat.v1.logging.info("Decoding samples...")

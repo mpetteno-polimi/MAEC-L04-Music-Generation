@@ -16,14 +16,11 @@ def latin_hypercube_sampling(d, grid_width, n_grid_points, rand_seed):
     return grid_points
 
 
-def batch_gaussian_sampling(d, grid_points, samples_per_point, sigma):
+def batch_gaussian_sampling(d, grid_points, samples_per_point, sigma, rand_seed):
+    np.random.seed(rand_seed)
     batched_samples = np.zeros(shape=(samples_per_point, grid_points.shape[0], d))
     for i, mean in enumerate(grid_points):
-        samples = []
-        for j in range(samples_per_point):
-            rand_seed = ((i + 1) * (j + 1) + (j + 1) ^ (i + 1))
-            np.random.seed(rand_seed)
-            samples.append(sigma * np.random.randn(d) + mean)
+        samples = [sigma * np.random.randn(d) + mean for _ in range(samples_per_point)]
         batched_samples[:, i, :] = samples
 
     return np.asarray(batched_samples)
