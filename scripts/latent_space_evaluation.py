@@ -299,7 +299,7 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
 
     tables_folder_path = os.path.join(output_dir, 'tables')
     row_names = ['Toussaint', 'Note density', 'Pitch range', 'Contour']
-    column_names = ['low/high', 'low/mid', 'mid/high']
+    column_names = ['low/mid', 'low/high', 'mid/high']
     tf.compat.v1.gfile.MakeDirs(tables_folder_path)
     file_system.save_plt_table(
         content=t_test_pvalues,
