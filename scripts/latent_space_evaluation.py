@@ -3,12 +3,11 @@
 import os
 import numpy as np
 import pandas as pd
-import scipy.stats
 import seaborn as sns
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from scipy.stats import ttest_ind, mannwhitneyu, pearsonr
 from magenta.models.music_vae.configs import CONFIG_MAP
-from scipy.stats import pearsonr
 from scipy.interpolate import griddata
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
 from sklearn.manifold import MDS
@@ -16,11 +15,29 @@ from sklearn.manifold import MDS
 import latent_space_complexities
 from definitions import ConfigSections
 from modules.maec.maec_trained_model import MAECTrainedModel
+from modules.utilities import math
 from modules.utilities import config as config_file, file_system
 
 logging = tf.compat.v1.logging
 script_config = config_file.load_configuration_section(ConfigSections.LATENT_SPACE_SAMPLING)
 complexities_methods = ['toussaint', 'note density', 'pitch range', 'contour']
+
+
+#todo: move this to somewhere more appropriate - prettier plots?
+def save_plt_table(content, output_path, col_labels=None, row_labels=None):
+    assert np.shape(content)[0] == len(row_labels)
+    assert np.shape(content)[1] == len(col_labels)
+
+    fig, ax = plt.subplots()
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+
+    df = pd.DataFrame(content, index=row_labels, columns=col_labels)
+    ax.table(cellText=df.values, rowLabels=df.index, colLabels=df.columns, loc='center')
+
+    fig.tight_layout()
+    plt.savefig(output_path)
 
 
 def load_matrices(grid_folder_path):
@@ -192,6 +209,8 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
     histograms_folder_name = 'histograms'
     histograms_folder_path = os.path.join(output_dir, histograms_folder_name)
 
+    t_test_pvalues = []
+    mann_test_pvalues = []
     for complexity_id, complexities_method in enumerate(complexities_methods):
         # Create complexity method output folder
         complexity_folder_path = os.path.join(histograms_folder_path, complexities_method)
@@ -277,13 +296,40 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
         plt.legend(title='Ranges', loc='upper right', labels=ranges_names)
         plt.savefig(os.path.join(complexity_folder_path, '%s_ranges_histogram.png' % complexities_method))
 
-        # Compute statistical test pairwise
-        # ranges_complexities[ranges_complexities['low'], ranges_complexities['high']0] = low, ranges_complexities[1] = mid, ranges_complexities[2] = high,
-        # scipy.stats.ttest_ind(ranges_complexities['low'], ranges_complexities['high'], equal_var=False)
-        # ecc...
-        # scipy.stats.mannwhitneyu(ranges_complexities['low'], ranges_complexities['high'])
-        # ecc...
+        # compute coupled combinations of pvalues
+        complexity_pairs = math.find_couples_subset(input_set=ranges_complexities)
+        # t_test
+        t_test_results = [ttest_ind(complexity_pair[0], complexity_pair[1], equal_var=False, nan_policy='raise') for
+                          complexity_pair in complexity_pairs]
+        t_test_results = np.asarray(["%.3E" % res[1] for res in t_test_results])
 
+        # mann whitneyu test
+        t_mann_results = [mannwhitneyu(complexity_pair[0], complexity_pair[1]) for complexity_pair in complexity_pairs]
+        t_mann_results = np.asarray(["%.3E" % res[1] for res in t_mann_results])
+
+        t_test_pvalues.append(t_test_results)
+        mann_test_pvalues.append(t_mann_results)
+
+    # create and save tables
+    t_test_pvalues = np.asarray(t_test_pvalues)
+    mann_test_pvalues = np.asarray(mann_test_pvalues)
+
+    tables_folder_path = os.path.join(output_dir, 'tables')
+    row_names = ['Toussaint', 'Note density', 'Pitch range', 'Contour']
+    column_names = ['low/high', 'low/mid', 'mid/high']
+    tf.compat.v1.gfile.MakeDirs(tables_folder_path)
+    save_plt_table(
+        content=t_test_pvalues,
+        output_path=os.path.join(tables_folder_path, 't_test_pvalues.png'),
+        row_labels=row_names,
+        col_labels=column_names
+    )
+    save_plt_table(
+        content=mann_test_pvalues,
+        output_path=os.path.join(tables_folder_path, 'mann_test_pvalues.png'),
+        row_labels=row_names,
+        col_labels=column_names
+    )
 
 def run(config_map):
     output_dir = os.path.expanduser(script_config.get("output_dir"))
