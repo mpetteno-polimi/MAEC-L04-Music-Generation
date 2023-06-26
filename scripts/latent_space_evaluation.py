@@ -23,23 +23,6 @@ script_config = config_file.load_configuration_section(ConfigSections.LATENT_SPA
 complexities_methods = ['toussaint', 'note density', 'pitch range', 'contour']
 
 
-#todo: move this to somewhere more appropriate - prettier plots?
-def save_plt_table(content, output_path, col_labels=None, row_labels=None):
-    assert np.shape(content)[0] == len(row_labels)
-    assert np.shape(content)[1] == len(col_labels)
-
-    fig, ax = plt.subplots()
-    fig.patch.set_visible(False)
-    ax.axis('off')
-    ax.axis('tight')
-
-    df = pd.DataFrame(content, index=row_labels, columns=col_labels)
-    ax.table(cellText=df.values, rowLabels=df.index, colLabels=df.columns, loc='center')
-
-    fig.tight_layout()
-    plt.savefig(output_path)
-
-
 def load_matrices(grid_folder_path):
     grid_points_coordinates = []
     sample_coordinates = []
@@ -297,7 +280,7 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
         plt.savefig(os.path.join(complexity_folder_path, '%s_ranges_histogram.png' % complexities_method))
 
         # compute coupled combinations of pvalues
-        complexity_pairs = math.find_couples_subset(input_set=ranges_complexities)
+        complexity_pairs = math.find_list_subcouples(ranges_complexities)
         # t_test
         t_test_results = [ttest_ind(complexity_pair[0], complexity_pair[1], equal_var=False, nan_policy='raise') for
                           complexity_pair in complexity_pairs]
@@ -318,18 +301,19 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
     row_names = ['Toussaint', 'Note density', 'Pitch range', 'Contour']
     column_names = ['low/high', 'low/mid', 'mid/high']
     tf.compat.v1.gfile.MakeDirs(tables_folder_path)
-    save_plt_table(
+    file_system.save_plt_table(
         content=t_test_pvalues,
         output_path=os.path.join(tables_folder_path, 't_test_pvalues.png'),
         row_labels=row_names,
         col_labels=column_names
     )
-    save_plt_table(
+    file_system.save_plt_table(
         content=mann_test_pvalues,
         output_path=os.path.join(tables_folder_path, 'mann_test_pvalues.png'),
         row_labels=row_names,
         col_labels=column_names
     )
+
 
 def run(config_map):
     output_dir = os.path.expanduser(script_config.get("output_dir"))

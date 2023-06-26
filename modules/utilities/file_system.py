@@ -1,9 +1,9 @@
-
 import os
-
 import note_seq
 import numpy as np
+import pandas as pd
 import tensorflow as tf
+import matplotlib.pyplot as plt
 
 
 def save_grid_sampling_results(output_dir, results, z_grid, batched_gaussian_samples):
@@ -46,3 +46,20 @@ def save_grid_sampling_results(output_dir, results, z_grid, batched_gaussian_sam
             note_seq.sequence_proto_to_midi_file(sample_note_sequence, sample_midi_file_path)
 
     return samples_folder_path
+
+
+def save_plt_table(content, output_path, col_labels=None, row_labels=None):
+    assert np.shape(content)[0] == len(row_labels)
+    assert np.shape(content)[1] == len(col_labels)
+
+    fig, ax = plt.subplots()
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.axis('tight')
+
+    df = pd.DataFrame(content, index=row_labels, columns=col_labels)
+    ax.table(cellText=df.values, rowLabels=df.index, colLabels=df.columns, loc='center')
+
+    fig.tight_layout()
+    plt.savefig(output_path)
+
