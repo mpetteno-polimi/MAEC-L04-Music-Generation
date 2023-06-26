@@ -21,7 +21,7 @@ def batch_gaussian_sampling(d, grid_points, samples_per_point, sigma):
     for i, mean in enumerate(grid_points):
         samples = []
         for j in range(samples_per_point):
-            rand_seed = ((i + 1) * 6) * j + j ^ ((i + 1) * 5)
+            rand_seed = ((i + 1) * (j + 1) + (j + 1) ^ (i + 1))
             np.random.seed(rand_seed)
             samples.append(sigma * np.random.randn(d) + mean)
         batched_samples[:, i, :] = samples

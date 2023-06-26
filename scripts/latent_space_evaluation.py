@@ -203,7 +203,7 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
         sorted_complexities_mean_idx = np.argsort(current_complexity_mean, axis=0)
         ranges_idx = np.array_split(sorted_complexities_mean_idx, 3)
 
-        range_complexities = np.zeros(shape=(sample_complexities.shape[1], 3))
+        ranges_complexities = []
         for idx, range_idx in enumerate(ranges_idx):
             # Create range output folder
             range_folder_path = os.path.join(complexity_folder_path, ranges_names[idx])
@@ -248,26 +248,41 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
 
             # Compute complexities
             complexity_values = latent_space_complexities.run(range_samples_folder_path, metrics=[complexities_method])
-            range_complexities[:, idx] = complexity_values[:, 0]
+            ranges_complexities.append(complexity_values[:, 0])
 
-            # Plot continuous histogram of complexity
+            # Plot histogram of complexity in current range
             plt.figure()
-            sns.histplot(range_complexities[:, idx], bins=20, kde=True, legend=False)
+            sns.histplot(ranges_complexities[idx], bins='auto', kde=True, legend=False, stat='probability')
             plt.xlabel(complexities_method)
             plt.legend(title='Ranges', loc='upper right', labels=[ranges_names[idx]])
             plt.savefig(os.path.join(range_folder_path, '%s_%s_histogram.png' % (ranges_names[idx],
                                                                                  complexities_method)))
 
-        # Plot continuous histogram of complexities
+        # Plot histogram of complexities in all ranges
         plt.figure()
-        sns.histplot(range_complexities, bins=20, kde=True, legend=False)
+        cmap = plt.get_cmap('bwr')
+        color_data = cmap._segmentdata
+        rgba_channels = ['red', 'green', 'blue', 'alpha']
+        min_color = []
+        middle_color = []
+        max_color = []
+        for channel in rgba_channels:
+            min_color.append(color_data[channel][0][1])
+            middle_color.append(color_data[channel][int(len(color_data[channel]) / 2)][1])
+            max_color.append(color_data[channel][-1][1])
+        colors = [min_color, middle_color, max_color]
+        for k, range_complexities in enumerate(ranges_complexities):
+            sns.histplot(range_complexities, bins='auto', kde=True, legend=False, color=colors[k], stat='probability')
         plt.xlabel(complexities_method)
         plt.legend(title='Ranges', loc='upper right', labels=ranges_names)
         plt.savefig(os.path.join(complexity_folder_path, '%s_ranges_histogram.png' % complexities_method))
 
-    # Compute statistical test pairwise
-    # scipy.stats.ttest_ind(complexity_values['low'], complexity_values['high'], equal_var=False)
-    # scipy.stats.mannwhitneyu()
+        # Compute statistical test pairwise
+        # ranges_complexities[ranges_complexities['low'], ranges_complexities['high']0] = low, ranges_complexities[1] = mid, ranges_complexities[2] = high,
+        # scipy.stats.ttest_ind(ranges_complexities['low'], ranges_complexities['high'], equal_var=False)
+        # ecc...
+        # scipy.stats.mannwhitneyu(ranges_complexities['low'], ranges_complexities['high'])
+        # ecc...
 
 
 def run(config_map):
