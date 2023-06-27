@@ -1,6 +1,10 @@
 # MAEC - L04-Music-Generation
 Repository for Music and Acoustics Engineering Capstone 2022/23 Course
 
+## Abstract
+
+[TODO]
+
 ## Environment
 
 ### Setup
@@ -24,6 +28,10 @@ conda env update --prefix ./venv --file environment.yml  --prune
 ```
 More info on this process can be found [here](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#updating-an-environment).
 
+## Config
+
+[TODO]
+
 ## Scripts
 
 Create your `/config/config.ini` file from `/config/config.ini.sample`.
@@ -35,3 +43,14 @@ root directory to the path.
 ```shell script
 cd /path/to/project/root && export PYTHONPATH=.
 ```
+
+### Sampling
+
+[TODO]
+
+### Complexities
+
+[TODO]
+
+### Evaluation
+

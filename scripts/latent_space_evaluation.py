@@ -129,7 +129,7 @@ def correlation(output_dir, grid_points_coordinates, sample_coordinates, sample_
         plt.figure()
         plt.scatter(grid_points_coordinates[:, zx], grid_points_coordinates[:, zy],
                     c=current_complexity_mean,
-                    cmap=plt.cm.bwr)
+                    cmap='viridis')
         plt.xlabel(f'z_{zx}')
         plt.ylabel(f'z_{zy}')
         plt.colorbar()
@@ -147,7 +147,7 @@ def correlation(output_dir, grid_points_coordinates, sample_coordinates, sample_
         z2 = griddata((df['x'], df['y']), df['z'], (x2, y2), method='cubic')
         fig = plt.figure(dpi=150)
         ax = plt.axes(projection='3d')
-        surf = ax.plot_surface(x2, y2, z2, rstride=1, cstride=1, cmap=plt.cm.bwr, linewidth=1., antialiased=False)
+        surf = ax.plot_surface(x2, y2, z2, rstride=1, cstride=1, cmap='viridis', linewidth=1., antialiased=False)
         ax.zaxis.set_major_locator(LinearLocator(10))
         ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
         fig.colorbar(surf, shrink=0.5, aspect=8)
@@ -171,7 +171,7 @@ def multi_dimensional_scaling(output_dir, grid_points_coordinates, sample_comple
         reducer = MDS(verbose=1, random_state=1)
         r = reducer.fit_transform(grid_points_coordinates)
         plt.figure()
-        plt.scatter(r[:, 0], r[:, 1], c=current_complexity_mean, cmap='bwr')
+        plt.scatter(r[:, 0], r[:, 1], c=current_complexity_mean, cmap='viridis')
         plt.colorbar()
         plt.grid(linestyle=':')
         plt.savefig(os.path.join(complexity_folder_path, '%s_mds.png' % complexities_method))
@@ -180,7 +180,7 @@ def multi_dimensional_scaling(output_dir, grid_points_coordinates, sample_comple
         xx, yy, zz = r[:, 0], r[:, 1], current_complexity_mean
         fig, ax = plt.subplots(1)
         ax.tricontour(xx, yy, zz, levels=21, linewidths=0.2, colors='k')
-        cntr2 = ax.tricontourf(xx, yy, zz, levels=21, cmap="bwr", antialiased=True)
+        cntr2 = ax.tricontourf(xx, yy, zz, levels=21, cmap="viridis", antialiased=True)
         fig.colorbar(cntr2, ax=ax)
         ax.plot(xx, yy, 'ko', ms=4)
         plt.tight_layout()
@@ -239,8 +239,7 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
                 # Batch sampling around chosen point
                 logging.info('Sampling latent space...')
                 results, batched_gaussian_samples = model.grid_sample(grid_points=z_grid,
-                                                                      n_samples_per_grid_point=
-                                                                      sample_complexities.shape[1],
+                                                                      n_samples_per_grid_point=sample_complexities.shape[1],
                                                                       sigma=1)
                 logging.info('Saving results...')
                 range_samples_folder_path = file_system.save_grid_sampling_results(range_folder_path, results, z_grid,
@@ -262,16 +261,10 @@ def histograms(output_dir, grid_points_coordinates, sample_complexities, model):
 
         # Plot histogram of complexities in all ranges
         plt.figure()
-        cmap = plt.get_cmap('bwr')
-        color_data = cmap._segmentdata
-        rgba_channels = ['red', 'green', 'blue', 'alpha']
-        min_color = []
-        middle_color = []
-        max_color = []
-        for channel in rgba_channels:
-            min_color.append(color_data[channel][0][1])
-            middle_color.append(color_data[channel][int(len(color_data[channel]) / 2)][1])
-            max_color.append(color_data[channel][-1][1])
+        cmap = plt.get_cmap('viridis')
+        min_color = cmap.colors[0]
+        middle_color = cmap.colors[len(cmap.colors) // 2]
+        max_color = cmap.colors[-1]
         colors = [min_color, middle_color, max_color]
         for k, range_complexities in enumerate(ranges_complexities):
             sns.histplot(range_complexities, bins='auto', kde=True, legend=False, color=colors[k], stat='probability')
