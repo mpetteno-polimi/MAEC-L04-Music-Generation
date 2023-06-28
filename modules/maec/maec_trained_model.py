@@ -1,31 +1,32 @@
 
 import numpy as np
+import tensorflow as tf
 
 from magenta.models.music_vae import TrainedModel
 
 from definitions import ConfigSections
-from modules.utilities import sampling, math
+from modules.utilities import sampling
 from modules.utilities import config as config_file
 
 
 class MAECTrainedModel(TrainedModel):
 
-    def __init__(self, config, batch_size, checkpoint_dir_or_path=None,
+    def __init__(self, config, batch_size, checkpoint_dir_or_path=None, rand_seed=0,
                  var_name_substitutions=None, session_target='', **sample_kwargs):
         super(MAECTrainedModel, self).__init__(config, batch_size,
                                                checkpoint_dir_or_path=checkpoint_dir_or_path,
                                                var_name_substitutions=var_name_substitutions,
                                                session_target=session_target, **sample_kwargs)
         self._config_file = config_file.load_configuration_section(ConfigSections.LATENT_SPACE_SAMPLING)
-        self._grid_width = self._config_file.get("grid_width")
-        self._rand_seed = self._config_file.get("rand_seed")
+        self._rand_seed = self._config_file.get("rand_seed") - rand_seed
 
-    def grid_sample(self, n_grid_points, n_samples_per_grid_point, length=None, temperature=1.0):
+    def grid_sample(self, grid_points, n_samples_per_grid_point, sigma, length=None, temperature=1.0):
         """ TODO
 
         Args:
-          n_grid_points: .
+          grid_points: .
           n_samples_per_grid_point: .
+          sigma: .
           length: The maximum length of a sample in decoder iterations. Required
             if end tokens are not being used.
           temperature: The softmax temperature to use (if applicable).
@@ -36,31 +37,28 @@ class MAECTrainedModel(TrainedModel):
             used.
         """
 
+        if length is None:
+            length = self._config.hparams.max_seq_len
+
         feed_dict = {
             self._temperature: temperature,
             self._max_length: length
         }
 
-        z_grid = sampling.latin_hypercube_sampling(
-            d=self._config.hparams.z_size,
-            grid_width=self._grid_width,
-            n_grid_points=n_grid_points,
-            rand_seed=self._rand_seed
-        )
-
+        tf.compat.v1.logging.info("Performing gaussian sampling...")
         batched_gaussian_samples = sampling.batch_gaussian_sampling(
             d=self._config.hparams.z_size,
-            grid_points=z_grid,
+            grid_points=grid_points,
             samples_per_point=n_samples_per_grid_point,
-            sigma=math.mean_points_distance(z_grid) / 3,  # TODO: do distance make sense?
+            sigma=sigma,
             rand_seed=self._rand_seed
         )
 
-        # Decode samples
+        tf.compat.v1.logging.info("Decoding samples...")
         outputs = []
-        for idx in range(n_grid_points):
+        for idx in range(grid_points.shape[0]):
             feed_dict[self._z_input] = batched_gaussian_samples[:, idx, :]
             outputs.append(self._sess.run(self._outputs, feed_dict))
 
         samples = np.vstack(outputs)
-        return self._config.data_converter.from_tensors(samples), z_grid, batched_gaussian_samples
+        return self._config.data_converter.from_tensors(samples), batched_gaussian_samples

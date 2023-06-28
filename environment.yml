@@ -7,6 +7,7 @@ dependencies:
   - python=3.7
   - pip=22.3.1
   - pip:
-    - jupyter==1.0.0
     - magenta==2.1.4
+    - jupyter==1.0.0
+    - seaborn==0.12.2
     - visual_midi==1.1.0

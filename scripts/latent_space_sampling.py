@@ -2,14 +2,12 @@
 
 import os
 
-import note_seq
-import numpy as np
 import tensorflow as tf
 
 from magenta.models.music_vae.configs import CONFIG_MAP
 
 from definitions import ConfigSections
-from modules.utilities import config as config_file
+from modules.utilities import config as config_file, sampling, file_system
 from modules.maec.maec_trained_model import MAECTrainedModel
 
 logging = tf.compat.v1.logging
@@ -28,7 +26,9 @@ def run(config_map):
     checkpoint_dir_or_path = os.path.expanduser(script_config.get("checkpoint_file"))
     model_config = script_config.get("model_config")
     n_grid_points = script_config.get("n_grid_points")
+    grid_width = script_config.get("grid_width")
     n_samples_per_grid_point = script_config.get("n_samples_per_grid_point")
+    k_sigma = script_config.get('k_sigma')
     temperature = script_config.get("temperature")
     rand_seed = script_config.get("rand_seed")
     output_dir = os.path.expanduser(script_config.get("output_dir"))
@@ -44,50 +44,27 @@ def run(config_map):
                              checkpoint_dir_or_path=checkpoint_dir_or_path)
 
     logging.info('Sampling latent space...')
-    results, z_grid, batched_gaussian_samples = model.grid_sample(n_grid_points=n_grid_points,
-                                                                  n_samples_per_grid_point=n_samples_per_grid_point,
-                                                                  length=config.hparams.max_seq_len,
-                                                                  temperature=temperature)
+    z_grid = sampling.latin_hypercube_sampling(
+        d=config.hparams.z_size,
+        grid_width=grid_width,
+        n_grid_points=n_grid_points,
+        rand_seed=rand_seed
+    )
+    sigma, min_point_distance = sampling.get_sigma_from_grid_points(z_grid, k_sigma)
+    tf.compat.v1.logging.info("Minimum distance between grid points is %s" % min_point_distance)
+    tf.compat.v1.logging.info("Setting sigma to %s" % sigma)
+    results, batched_gaussian_samples = model.grid_sample(grid_points=z_grid,
+                                                          n_samples_per_grid_point=n_samples_per_grid_point,
+                                                          sigma=sigma,
+                                                          length=config.hparams.max_seq_len,
+                                                          temperature=temperature)
 
     logging.info('Saving results...')
-
-    # Create main run folder
     run_folder_name = 'config_%s_seed_%d' % (model_config, rand_seed)
-    run_folder_path = os.path.join(output_dir, run_folder_name)
-    tf.compat.v1.gfile.MakeDirs(run_folder_path)
-
-    for i in range(n_grid_points):
-        # Create current grid point folder
-        grid_point_folder_name = 'grid_point_%d' % i
-        grid_point_folder_path = os.path.join(run_folder_path, grid_point_folder_name)
-        tf.compat.v1.gfile.MakeDirs(grid_point_folder_path)
-
-        # Save current mean point coordinate file
-        mean_point_coord_file_name = 'mean_pt_%d_coord.npy' % i
-        mean_point_coord_file_path = os.path.join(grid_point_folder_path, mean_point_coord_file_name)
-        mean_point_coord = z_grid[i, :]
-        np.save(mean_point_coord_file_path, mean_point_coord)
-
-        # Save gaussian samples results
-        for j in range(n_samples_per_grid_point):
-            # Create current sample folder
-            sample_folder_name = 'sample_%d' % j
-            sample_folder_path = os.path.join(grid_point_folder_path, sample_folder_name)
-            tf.compat.v1.gfile.MakeDirs(sample_folder_path)
-
-            # Save current sample coordinate file
-            sample_coord_file_name = 'sample_%d_coord.npy' % j
-            sample_coord_file_path = os.path.join(sample_folder_path, sample_coord_file_name)
-            sample_coord = batched_gaussian_samples[j, i, :]
-            np.save(sample_coord_file_path, sample_coord)
-
-            # Save current sample MIDI output
-            sample_midi_file_name = 'sample_%d_midi_out.mid' % j
-            sample_midi_file_path = os.path.join(sample_folder_path, sample_midi_file_name)
-            sample_note_sequence = results[i*j]
-            note_seq.sequence_proto_to_midi_file(sample_note_sequence, sample_midi_file_path)
-
-    logging.info('Done.')
+    file_system.save_grid_sampling_results(output_dir=os.path.join(output_dir, run_folder_name),
+                                           results=results,
+                                           z_grid=z_grid,
+                                           batched_gaussian_samples=batched_gaussian_samples)
 
 
 def main(_):
