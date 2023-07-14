@@ -2,7 +2,7 @@
 Repository for Music and Acoustics Engineering Capstone 2022/23 Course
 
 ## Do Unconditional Deep Generative Models Spontaneously Learn How to Encode Human-Interpretable Musical Attributes?
-Read the full project report [here](./assets/ProjectL04_Report.pdf.pdf).
+Read the full project report [here](./assets/L04_Report.pdf).
 
 ## Abstract
 Our study is focused on investigating the presence of any correlations between the topological structure of the latent space and high-level features of the output. 
